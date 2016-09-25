@@ -295,14 +295,14 @@
 1474486836 source:d:\projects\jpeg_decoder\src\jpegdecoder.cpp
 	"JpegDecoder.h"
 
-1474794006 d:\projects\jpeg_decoder\include\jpegsections.h
+1474811087 d:\projects\jpeg_decoder\include\jpegsections.h
 	<fstream>
 	<memory>
 	<string>
 	<list>
 	<vector>
 
-1474796964 source:d:\projects\jpeg_decoder\src\jpegsections.cpp
+1474812139 source:d:\projects\jpeg_decoder\src\jpegsections.cpp
 	"JpegSections.h"
 	<stdexcept>
 	<exception>

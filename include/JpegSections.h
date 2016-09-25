@@ -49,17 +49,22 @@ class JpegSections
 
     std::vector<JpegFrameComponent> jpegFrameComponents;
 
+    struct JpegSOSComponent  {
+      uint8_t C;
+      uint8_t Td;
+      uint8_t Ta;
+    };
+
     struct  {
       const uint8_t  marker[2] = { 0xFF, 0xDA };
-      uint8_t  jpegSOSHeaderSize[2] = { 0x00, 0x00 };
-      uint8_t  jpegSOSComponentNum;
-    } jpegSOSSection;
-
-    struct JpegSOSComponent  {
-      uint8_t jpegSOSComponentId;
-      uint8_t jpegSOSComponentDhtDcId;
-      uint8_t jpegSOSComponentDhtAcId;
-    };
+      uint8_t  Ls[2] = { 0x00, 0x00 };
+      uint8_t  Ns;
+      std::vector<JpegSOSComponent> scanComponents;
+      uint8_t Ss;
+      uint8_t Se;
+      uint8_t Ah;
+      uint8_t Al;
+    } SOS;
 
     struct  {
       const uint8_t  marker[2] = { 0xFF, 0xC4 };
@@ -86,6 +91,7 @@ class JpegSections
     int jpegSearchSOF() throw();
     bool jpegReadSOF(int sofNumber, std::ifstream& afile) throw();
     void jpegReadFrameComponents(std::ifstream&  afile) throw();
+    void jpegReadSOS(std::ifstream&  afile) throw();
 
 };
 

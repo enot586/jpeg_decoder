@@ -13,11 +13,11 @@ JpegSections::JpegSections()
 
 JpegSections::~JpegSections()
 {
-  this->jpegSOSComponents.clear();
+  //dctor
 }
 
 void JpegSections::AssignFile(std::string& fileName) throw() {
-  afile.open(fileName, ios::in);
+  afile.open(fileName, ios::binary);
 
   if ( !jpegSearchSOI(afile) ) {
     throw std::invalid_argument("Input Can't find JPEG SOI");
@@ -34,6 +34,7 @@ void JpegSections::AssignFile(std::string& fileName) throw() {
   }
 
   jpegReadFrameComponents(afile);
+  jpegReadSOS(afile);
 
 }
 
@@ -45,10 +46,6 @@ bool JpegSections::jpegSearchSOI(std::ifstream&  afile) throw() {
 
   while ( !afile.eof() ) {
     afile >> markerBuffer;
-
-    if (afile.eof()) {
-      break;
-    }
 
     if (markerBuffer == SOI[0]) {
       afile >> markerBuffer;
@@ -70,10 +67,6 @@ int JpegSections::jpegSearchSOF() throw() {
 
   while ( !afile.eof() ) {
     afile >> markerBuffer;
-
-    if (afile.eof()) {
-      break;
-    }
 
     if (markerBuffer == SOF[0].marker[0]) {
       afile >> markerBuffer;
@@ -98,48 +91,30 @@ bool JpegSections::jpegReadSOF(int sofNumber, std::ifstream&  afile) throw() {
 
   uint8_t markerBuffer = 0;
 
-  while ( !afile.eof() ) {
+  afile >> markerBuffer;
+  SOF[sofNumber].Lf[0] = markerBuffer;
 
-    if ( afile.eof() ) {
-      break;
-    }
+  afile >> markerBuffer;
+  SOF[sofNumber].Lf[1] = markerBuffer;
 
-    afile >> markerBuffer;
+  afile >> markerBuffer;
+  SOF[sofNumber].precision  = markerBuffer;
 
-    if (markerBuffer == SOF[sofNumber].marker[0]) {
+  afile >> markerBuffer;
+  SOF[sofNumber].Y[0] = markerBuffer;
+  afile >> markerBuffer;
+  SOF[sofNumber].Y[1] = markerBuffer;
 
-      afile >> markerBuffer;
+  afile >> markerBuffer;
+  SOF[sofNumber].X[0] = markerBuffer;
 
-      if ( markerBuffer == (SOF[sofNumber].marker[1]+sofNumber) ) {
-        afile >> markerBuffer;
-        SOF[sofNumber].Lf[0] = markerBuffer;
+  afile >> markerBuffer;
+  SOF[sofNumber].X[1] = markerBuffer;
 
-        afile >> markerBuffer;
-        SOF[sofNumber].Lf[1] = markerBuffer;
+  afile >> markerBuffer;
+  SOF[sofNumber].Nf  = markerBuffer;
 
-        afile >> markerBuffer;
-        SOF[sofNumber].precision  = markerBuffer;
-
-        afile >> markerBuffer;
-        SOF[sofNumber].Y[0] = markerBuffer;
-        afile >> markerBuffer;
-        SOF[sofNumber].Y[1] = markerBuffer;
-
-        afile >> markerBuffer;
-        SOF[sofNumber].X[0] = markerBuffer;
-
-        afile >> markerBuffer;
-        SOF[sofNumber].X[1] = markerBuffer;
-
-        afile >> markerBuffer;
-        SOF[sofNumber].Nf  = markerBuffer;
-
-        return true;
-      }
-    }
-  }
-
-  return false;
+  return true;
 }
 
 void JpegSections::jpegReadFrameComponents(std::ifstream&  afile) throw() {
@@ -147,7 +122,7 @@ void JpegSections::jpegReadFrameComponents(std::ifstream&  afile) throw() {
     throw std::invalid_argument("Input file error !");
 
   if (SOF[jpegSOF].Nf > 3) {
-    throw std::invalid_argument("Too many image comonents in frame header !");
+    throw std::invalid_argument("Too many image components in frame header !");
   }
 
   jpegFrameComponents.resize(SOF[jpegSOF].Nf);
@@ -170,4 +145,56 @@ void JpegSections::jpegReadFrameComponents(std::ifstream&  afile) throw() {
     }
   }
 
+}
+
+void JpegSections::jpegReadSOS(std::ifstream&  afile) throw() {
+  if ( !afile.good() )
+    throw std::invalid_argument("Input file error !");
+
+  uint8_t markerBuffer = 0;
+
+  afile.seekg(0);
+
+  while ( !afile.eof() ) {
+
+    afile >> markerBuffer;
+
+    if ( markerBuffer == SOS.marker[0] ) {
+      afile >> markerBuffer;
+      if ( markerBuffer == SOS.marker[1] ) {
+
+        afile >> markerBuffer;
+        SOS.Ls[0] = markerBuffer;
+
+        afile >> markerBuffer;
+        SOS.Ls[1] = markerBuffer;
+
+        afile >> markerBuffer;
+        SOS.Ns = markerBuffer;
+
+        SOS.scanComponents.resize(SOS.Ns);
+
+        for (int i = 0; i < SOS.Ns; ++i) {
+          afile >> markerBuffer;
+          SOS.scanComponents[i].C  = markerBuffer;
+
+          afile >> markerBuffer;
+          SOS.scanComponents[i].Td  = markerBuffer & 0x0F;
+          SOS.scanComponents[i].Ta  = (markerBuffer >> 4) & 0x0F;
+        }
+
+        afile >> markerBuffer;
+        SOS.Ss = markerBuffer;
+
+        afile >> markerBuffer;
+        SOS.Se = markerBuffer;
+
+        afile >> markerBuffer;
+        SOS.Ah = markerBuffer & 0x0F;;
+        SOS.Al  = (markerBuffer >> 4) & 0x0F;
+
+        return;
+      }
+    }
+  }
 }
