@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1474486739 source:d:\projects\jpeg_decoder\main.cpp
+1474788169 source:d:\projects\jpeg_decoder\main.cpp
 	<opencv2/core/core.hpp>
 	<opencv2/imgproc/imgproc.hpp>
 	<opencv2/highgui/highgui.hpp>
@@ -295,14 +295,17 @@
 1474486836 source:d:\projects\jpeg_decoder\src\jpegdecoder.cpp
 	"JpegDecoder.h"
 
-1474486938 d:\projects\jpeg_decoder\include\jpegsections.h
+1474794006 d:\projects\jpeg_decoder\include\jpegsections.h
+	<fstream>
 	<memory>
 	<string>
 	<list>
+	<vector>
 
-1474487175 source:d:\projects\jpeg_decoder\src\jpegsections.cpp
+1474796964 source:d:\projects\jpeg_decoder\src\jpegsections.cpp
 	"JpegSections.h"
-	<fstream>
+	<stdexcept>
+	<exception>
 	<exception>
 	<iostream>
 

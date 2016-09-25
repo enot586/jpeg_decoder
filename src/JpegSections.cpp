@@ -1,5 +1,6 @@
 #include "JpegSections.h"
-#include <fstream>
+#include <stdexcept>
+#include <exception>
 #include <exception>
 #include <iostream>
 
@@ -7,66 +8,166 @@ using namespace std;
 
 JpegSections::JpegSections()
 {
-  //ctor
+  SOF.resize(9);
 }
 
 JpegSections::~JpegSections()
 {
-  //dtor
-  this->jpegSOF0Components.clear();
   this->jpegSOSComponents.clear();
 }
 
-void JpegSections::jpegReadSOF(const std::string& fileName) {
+void JpegSections::AssignFile(std::string& fileName) throw() {
+  afile.open(fileName, ios::in);
 
-  std::ifstream  afile;
-  afile.open(fileName , ios::in);
+  if ( !jpegSearchSOI(afile) ) {
+    throw std::invalid_argument("Input Can't find JPEG SOI");
+  }
 
-  uint8_t markerBuffer;
-  int i = 0;
-  int bytesNumber = 0;
+  jpegSOF = jpegSearchSOF();
+
+  if (jpegSOF == -1) {
+    throw std::invalid_argument("Can't find JPEG SOF");
+  }
+
+  if ( !jpegReadSOF(jpegSOF, afile) ) {
+    throw std::invalid_argument("Invalid JPEG SOF0");
+  }
+
+  jpegReadFrameComponents(afile);
+
+}
+
+bool JpegSections::jpegSearchSOI(std::ifstream&  afile) throw() {
+  if ( !afile.good() )
+    throw std::invalid_argument("Input file error !");
+
+  uint8_t markerBuffer = 0;
 
   while ( !afile.eof() ) {
-    try {
+    afile >> markerBuffer;
+
+    if (afile.eof()) {
+      break;
+    }
+
+    if (markerBuffer == SOI[0]) {
       afile >> markerBuffer;
-
-      if (afile.eof()) {
-        break;
+      if (markerBuffer == SOI[1]) {
+        return true;
       }
-
-      if (markerBuffer == jpegSOF0Section.prefix[0]) {
-
-        afile >> markerBuffer;
-
-        if (markerBuffer == jpegSOF0Section.prefix[1]) {
-          afile >> markerBuffer;
-          jpegSOF0Section.jpegSOF0Size[0] = markerBuffer;
-
-          afile >> markerBuffer;
-          jpegSOF0Section.jpegSOF0Size[1] = markerBuffer;
-
-          afile >> markerBuffer;
-          jpegSOF0Section.jpegSOF0Precision  = markerBuffer;
-
-          afile >> markerBuffer;
-          jpegSOF0Section.jpegSOF0Height[0] = markerBuffer;
-          afile >> markerBuffer;
-          jpegSOF0Section.jpegSOF0Height[1] = markerBuffer;
-
-          afile >> markerBuffer;
-          jpegSOF0Section.jpegSOF0Width[0] = markerBuffer;
-
-          afile >> markerBuffer;
-          jpegSOF0Section.jpegSOF0Width[1] = markerBuffer;
-
-          afile >> markerBuffer;
-          jpegSOF0Section.jpegSOF0ComponentNum  = markerBuffer;
-
-          return;
-        }
-      }
-    } catch (std::exception& e) {
-      std::cout << "Exception !\n";
     }
   }
+
+  return false;
+}
+
+int JpegSections::jpegSearchSOF() throw() {
+  if ( !afile.good() )
+    throw std::invalid_argument("Input file error !");
+
+  uint32_t buffer = 0;
+  uint8_t markerBuffer = 0;
+
+  while ( !afile.eof() ) {
+    afile >> markerBuffer;
+
+    if (afile.eof()) {
+      break;
+    }
+
+    if (markerBuffer == SOF[0].marker[0]) {
+      afile >> markerBuffer;
+      int sofNumber = markerBuffer - SOF[0].marker[1];
+      if ( sofNumber < SOF.size() ) {
+        return sofNumber;
+      }
+    }
+  }
+
+  return (-1);
+}
+
+bool JpegSections::jpegReadSOF(int sofNumber, std::ifstream&  afile) throw() {
+
+  if ( !afile.good() )
+    throw std::invalid_argument("Input file error !");
+
+  if ( sofNumber > SOF.size() ) {
+    throw std::invalid_argument("Invalid SOF number!");
+  }
+
+  uint8_t markerBuffer = 0;
+
+  while ( !afile.eof() ) {
+
+    if ( afile.eof() ) {
+      break;
+    }
+
+    afile >> markerBuffer;
+
+    if (markerBuffer == SOF[sofNumber].marker[0]) {
+
+      afile >> markerBuffer;
+
+      if ( markerBuffer == (SOF[sofNumber].marker[1]+sofNumber) ) {
+        afile >> markerBuffer;
+        SOF[sofNumber].Lf[0] = markerBuffer;
+
+        afile >> markerBuffer;
+        SOF[sofNumber].Lf[1] = markerBuffer;
+
+        afile >> markerBuffer;
+        SOF[sofNumber].precision  = markerBuffer;
+
+        afile >> markerBuffer;
+        SOF[sofNumber].Y[0] = markerBuffer;
+        afile >> markerBuffer;
+        SOF[sofNumber].Y[1] = markerBuffer;
+
+        afile >> markerBuffer;
+        SOF[sofNumber].X[0] = markerBuffer;
+
+        afile >> markerBuffer;
+        SOF[sofNumber].X[1] = markerBuffer;
+
+        afile >> markerBuffer;
+        SOF[sofNumber].Nf  = markerBuffer;
+
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+void JpegSections::jpegReadFrameComponents(std::ifstream&  afile) throw() {
+  if ( !afile.good() )
+    throw std::invalid_argument("Input file error !");
+
+  if (SOF[jpegSOF].Nf > 3) {
+    throw std::invalid_argument("Too many image comonents in frame header !");
+  }
+
+  jpegFrameComponents.resize(SOF[jpegSOF].Nf);
+
+  uint8_t byteBuffer = 0;
+
+  for (int i = 0; i < SOF[jpegSOF].Nf; ++i) {
+    afile >> byteBuffer;
+    jpegFrameComponents[i].C = byteBuffer;
+
+    afile >> byteBuffer;
+    jpegFrameComponents[i].H = (byteBuffer & 0x0F);
+    jpegFrameComponents[i].V = (byteBuffer >> 4) & 0x0F;
+
+    afile >> byteBuffer;
+    jpegFrameComponents[i].Tq = byteBuffer;
+
+    if (afile.eof()) {
+      break;
+    }
+  }
+
 }

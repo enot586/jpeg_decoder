@@ -20,7 +20,11 @@ int main(int argc, char *argv[])
 
     string file("lena.jpg");
 
-    jpeg.jpegReadSOF( file );
+    try {
+      jpeg.AssignFile( file );
+    } catch (std::invalid_argument& e) {
+
+    }
 
     namedWindow( "lena", CV_WINDOW_AUTOSIZE );
     imshow("lena", img);
