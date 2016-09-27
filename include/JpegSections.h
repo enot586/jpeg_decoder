@@ -38,7 +38,7 @@ class JpegSections
       uint8_t  Nf;
     };
 
-    std::vector<JpegFrameHeader> SOF;
+    std::vector<JpegFrameHeader> SOF; //@TODO: уменьшить рамер, заменить массивом
 
     struct JpegFrameComponent {
       uint8_t C;
@@ -66,19 +66,33 @@ class JpegSections
       uint8_t Al;
     } SOS;
 
+    struct DQTTableElement {
+      uint8_t  Pq;
+      uint8_t  Tq;
+      uint16_t  Q[64];
+    };
+
+    struct  {
+      const uint8_t  marker[2] = { 0xFF, 0xDB };
+      uint8_t  Lq[2] = { 0x00, 0x00 };
+      std::list<DQTTableElement> tables;
+    } DQT;
+
+
+    struct DHTTableElement {
+      uint8_t  Tc;
+      uint8_t  Th;
+      uint8_t  L[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+      std::list<uint8_t> V[16];
+    };
+
     struct  {
       const uint8_t  marker[2] = { 0xFF, 0xC4 };
-      uint8_t  jpegDhtClass;
-      uint8_t  jpegDhtId;
-      uint8_t  jpegDhtCodeQuantity[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-      uint8_t  jpegDhtCode1;
-      uint8_t  jpegDhtCode2;
-    } jpegDhtSection;
-
-    std::list<JpegSOSComponent> jpegSOSComponents;
+      uint8_t  Lh[2] = { 0x00, 0x00 };
+      std::list<DHTTableElement> tables;
+    } DHT;
 
     auto_ptr<uint8_t> pImageData;
-
 
     const uint8_t  EOI[2] = { 0xFF, 0xD9 };
 
@@ -86,12 +100,14 @@ class JpegSections
     int jpegSOF = 0;
 
   public:
-    void AssignFile(std::string& fileName) throw();
-    bool jpegSearchSOI(std::ifstream&  afile) throw();
-    int jpegSearchSOF() throw();
-    bool jpegReadSOF(int sofNumber, std::ifstream& afile) throw();
-    void jpegReadFrameComponents(std::ifstream&  afile) throw();
-    void jpegReadSOS(std::ifstream&  afile) throw();
+    void  AssignFile(std::string& fileName);
+    bool  SearchSOI(std::ifstream&  afile);
+    int   SearchSOF();
+    bool  ReadSOF(int sofNumber, std::ifstream& afile);
+    void  ReadFrameComponents(std::ifstream&  afile);
+    void  ReadSOS(std::ifstream&  afile);
+    void  ReadDQT(std::ifstream&  afile);
+    void  ReadDHT(std::ifstream&  afile);
 
 };
 

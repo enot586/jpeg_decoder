@@ -16,29 +16,30 @@ JpegSections::~JpegSections()
   //dctor
 }
 
-void JpegSections::AssignFile(std::string& fileName) throw() {
+void JpegSections::AssignFile(std::string& fileName) {
   afile.open(fileName, ios::binary);
 
-  if ( !jpegSearchSOI(afile) ) {
+  if ( !SearchSOI(afile) ) {
     throw std::invalid_argument("Input Can't find JPEG SOI");
   }
 
-  jpegSOF = jpegSearchSOF();
+  jpegSOF = SearchSOF();
 
   if (jpegSOF == -1) {
     throw std::invalid_argument("Can't find JPEG SOF");
   }
 
-  if ( !jpegReadSOF(jpegSOF, afile) ) {
+  if ( !ReadSOF(jpegSOF, afile) ) {
     throw std::invalid_argument("Invalid JPEG SOF0");
   }
 
-  jpegReadFrameComponents(afile);
-  jpegReadSOS(afile);
-
+  ReadFrameComponents(afile);
+  ReadSOS(afile);
+  ReadDQT(afile);
+  ReadDHT(afile);
 }
 
-bool JpegSections::jpegSearchSOI(std::ifstream&  afile) throw() {
+bool JpegSections::SearchSOI(std::ifstream&  afile) {
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
 
@@ -58,7 +59,7 @@ bool JpegSections::jpegSearchSOI(std::ifstream&  afile) throw() {
   return false;
 }
 
-int JpegSections::jpegSearchSOF() throw() {
+int JpegSections::SearchSOF() {
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
 
@@ -80,7 +81,7 @@ int JpegSections::jpegSearchSOF() throw() {
   return (-1);
 }
 
-bool JpegSections::jpegReadSOF(int sofNumber, std::ifstream&  afile) throw() {
+bool JpegSections::ReadSOF(int sofNumber, std::ifstream&  afile) {
 
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
@@ -117,7 +118,7 @@ bool JpegSections::jpegReadSOF(int sofNumber, std::ifstream&  afile) throw() {
   return true;
 }
 
-void JpegSections::jpegReadFrameComponents(std::ifstream&  afile) throw() {
+void JpegSections::ReadFrameComponents(std::ifstream&  afile) {
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
 
@@ -147,7 +148,7 @@ void JpegSections::jpegReadFrameComponents(std::ifstream&  afile) throw() {
 
 }
 
-void JpegSections::jpegReadSOS(std::ifstream&  afile) throw() {
+void JpegSections::ReadSOS(std::ifstream&  afile) {
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
 
@@ -192,6 +193,117 @@ void JpegSections::jpegReadSOS(std::ifstream&  afile) throw() {
         afile >> markerBuffer;
         SOS.Ah = markerBuffer & 0x0F;;
         SOS.Al  = (markerBuffer >> 4) & 0x0F;
+
+        return;
+      }
+    }
+  }
+}
+
+void JpegSections::ReadDQT(std::ifstream&  afile) {
+  if ( !afile.good() )
+    throw std::invalid_argument("Input file error !");
+
+  uint8_t markerBuffer = 0;
+
+  afile.seekg(0);
+
+  uint16_t currentLength = 0;
+
+  while ( !afile.eof() ) {
+    afile >> markerBuffer;
+
+    if ( markerBuffer == DQT.marker[0] ) {
+      afile >> markerBuffer;
+      if ( markerBuffer == DQT.marker[1] ) {
+
+        afile >> markerBuffer;
+        DQT.Lq[0] = markerBuffer;
+
+        afile >> markerBuffer;
+        DQT.Lq[1] = markerBuffer;
+
+        currentLength = 2;
+
+        do {
+
+          DQTTableElement table;
+
+          afile >> markerBuffer;
+          table.Pq  = markerBuffer & 0x0F;
+          table.Tq  = (markerBuffer >> 4) & 0x0F;
+          ++currentLength;
+
+          for (int i = 0; i < 64; ++i) {
+            afile >> markerBuffer;
+            table.Q[i] = markerBuffer;
+            ++currentLength;
+
+            if (table.Pq) {
+              afile >> markerBuffer;
+              table.Q[i]|= markerBuffer << 8;
+              ++currentLength;
+            }
+          }
+
+          DQT.tables.push_back(table);
+        } while ( (currentLength < ((DQT.Lq[0] << 8) | DQT.Lq[1])) && !afile.eof() );
+
+        return;
+      }
+    }
+  }
+}
+
+void JpegSections::ReadDHT(std::ifstream&  afile) {
+  if ( !afile.good() )
+    throw std::invalid_argument("Input file error !");
+
+  uint8_t markerBuffer = 0;
+
+  afile.seekg(0);
+
+  uint16_t currentLength = 0;
+
+  while ( !afile.eof() ) {
+    afile >> markerBuffer;
+
+    if ( markerBuffer == DHT.marker[0] ) {
+      afile >> markerBuffer;
+      if ( markerBuffer == DHT.marker[1] ) {
+
+        afile >> markerBuffer;
+        DHT.Lh[0] = markerBuffer;
+
+        afile >> markerBuffer;
+        DHT.Lh[1] = markerBuffer;
+
+        currentLength = 2;
+
+        do {
+          DHTTableElement table;
+
+          afile >> markerBuffer;
+          table.Tc  = markerBuffer & 0x0F;
+          table.Th  = (markerBuffer >> 4) & 0x0F;
+
+          for (int i = 0; i < 16; ++i) {
+            afile >> markerBuffer;
+            table.L[i] = markerBuffer;
+          }
+
+          currentLength+= 17;
+
+          for (int j = 0; j < 16; ++j) {
+            currentLength+= table.L[j];
+            for (int i = 0 ; i < table.L[j]; ++i) {
+              afile >> markerBuffer;
+              table.V[j].push_back(markerBuffer);
+            }
+          }
+
+          DHT.tables.push_back(table);
+        } while ( (currentLength < ((DHT.Lh[0] << 8) | DHT.Lh[1])) && !afile.eof());
 
         return;
       }
