@@ -29,17 +29,6 @@ class JpegSections
       uint8_t  jpegDqtElementSize;
     } jpegDqtSection;
 
-    struct  JpegFrameHeader {
-      const uint8_t  marker[2] = { 0xFF, 0xC0 };
-      uint8_t  Lf[2] = { 0x00, 0x00 };
-      uint8_t  precision;
-      uint8_t  Y[2] = { 0x00, 0x00 };
-      uint8_t  X[2] = { 0x00, 0x00 };
-      uint8_t  Nf;
-    };
-
-    std::vector<JpegFrameHeader> SOF; //@TODO: уменьшить рамер, заменить массивом
-
     struct JpegFrameComponent {
       uint8_t C;
       uint8_t H;
@@ -47,7 +36,17 @@ class JpegSections
       uint8_t Tq;
     };
 
-    std::vector<JpegFrameComponent> jpegFrameComponents;
+    struct  JpegFrameHeader {
+      const uint8_t  marker[2] = { 0xFF, 0xC0 };
+      uint8_t  Lf[2] = { 0x00, 0x00 };
+      uint8_t  precision;
+      uint8_t  Y[2] = { 0x00, 0x00 };
+      uint8_t  X[2] = { 0x00, 0x00 };
+      uint8_t  Nf;
+      std::vector<JpegFrameComponent> components;
+    };
+
+    std::vector<JpegFrameHeader> SOF; //@TODO: уменьшить рамер, заменить массивом
 
     struct JpegSOSComponent  {
       uint8_t C;
@@ -98,6 +97,7 @@ class JpegSections
 
     std::ifstream  afile;
     int jpegSOF = 0;
+    uint32_t offsetToData = 0;
 
   public:
     void  AssignFile(std::string& fileName);

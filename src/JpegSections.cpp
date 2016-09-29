@@ -33,10 +33,9 @@ void JpegSections::AssignFile(std::string& fileName) {
     throw std::invalid_argument("Invalid JPEG SOF0");
   }
 
-  ReadFrameComponents(afile);
-  ReadSOS(afile);
   ReadDQT(afile);
   ReadDHT(afile);
+  ReadSOS(afile);
 }
 
 bool JpegSections::SearchSOI(std::ifstream&  afile) {
@@ -115,6 +114,8 @@ bool JpegSections::ReadSOF(int sofNumber, std::ifstream&  afile) {
   afile >> markerBuffer;
   SOF[sofNumber].Nf  = markerBuffer;
 
+  ReadFrameComponents(afile);
+
   return true;
 }
 
@@ -126,26 +127,25 @@ void JpegSections::ReadFrameComponents(std::ifstream&  afile) {
     throw std::invalid_argument("Too many image components in frame header !");
   }
 
-  jpegFrameComponents.resize(SOF[jpegSOF].Nf);
+  SOF[jpegSOF].components.resize(SOF[jpegSOF].Nf);
 
   uint8_t byteBuffer = 0;
 
   for (int i = 0; i < SOF[jpegSOF].Nf; ++i) {
     afile >> byteBuffer;
-    jpegFrameComponents[i].C = byteBuffer;
+    SOF[jpegSOF].components[i].C = byteBuffer;
 
     afile >> byteBuffer;
-    jpegFrameComponents[i].H = (byteBuffer & 0x0F);
-    jpegFrameComponents[i].V = (byteBuffer >> 4) & 0x0F;
+    SOF[jpegSOF].components[i].H = (byteBuffer & 0x0F);
+    SOF[jpegSOF].components[i].V = (byteBuffer >> 4) & 0x0F;
 
     afile >> byteBuffer;
-    jpegFrameComponents[i].Tq = byteBuffer;
+    SOF[jpegSOF].components[i].Tq = byteBuffer;
 
     if (afile.eof()) {
       break;
     }
   }
-
 }
 
 void JpegSections::ReadSOS(std::ifstream&  afile) {
@@ -192,8 +192,9 @@ void JpegSections::ReadSOS(std::ifstream&  afile) {
 
         afile >> markerBuffer;
         SOS.Ah = markerBuffer & 0x0F;;
-        SOS.Al  = (markerBuffer >> 4) & 0x0F;
+        SOS.Al = (markerBuffer >> 4) & 0x0F;
 
+        offsetToData = afile.tellg();
         return;
       }
     }
@@ -303,10 +304,15 @@ void JpegSections::ReadDHT(std::ifstream&  afile) {
           }
 
           DHT.tables.push_back(table);
-        } while ( (currentLength < ((DHT.Lh[0] << 8) | DHT.Lh[1])) && !afile.eof());
+        } while ( (currentLength < ((DHT.Lh[0] << 8) | DHT.Lh[1])) && !afile.eof() );
 
         return;
       }
     }
   }
 }
+
+
+
+
+
