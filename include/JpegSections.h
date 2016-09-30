@@ -15,6 +15,19 @@ class JpegSections
     JpegSections();
     virtual ~JpegSections();
 
+    void  AssignFile(std::string& fileName);
+
+  protected:
+    bool  SearchSOI(std::ifstream&  afile);
+    int   SearchSOF();
+    bool  ReadSOF(int sofNumber, std::ifstream& afile);
+    void  ReadFrameComponents(std::ifstream&  afile);
+    void  ReadSOS(std::ifstream&  afile);
+    void  ReadDQT(std::ifstream&  afile);
+    void  ReadDHT(std::ifstream&  afile);
+    uint8_t ReadImage(std::ifstream&  afile);
+
+
   private:
     const uint8_t  SOI[2] = { 0xFF, 0xD8 };
 
@@ -68,7 +81,8 @@ class JpegSections
     struct DQTTableElement {
       uint8_t  Pq;
       uint8_t  Tq;
-      uint16_t  Q[64];
+      //uint16_t  Q[64];
+      ZZMatrix<int, 8,8> Q;
     };
 
     struct  {
@@ -98,16 +112,6 @@ class JpegSections
     std::ifstream  afile;
     int jpegSOF = 0;
     uint32_t offsetToData = 0;
-
-  public:
-    void  AssignFile(std::string& fileName);
-    bool  SearchSOI(std::ifstream&  afile);
-    int   SearchSOF();
-    bool  ReadSOF(int sofNumber, std::ifstream& afile);
-    void  ReadFrameComponents(std::ifstream&  afile);
-    void  ReadSOS(std::ifstream&  afile);
-    void  ReadDQT(std::ifstream&  afile);
-    void  ReadDHT(std::ifstream&  afile);
 
 };
 

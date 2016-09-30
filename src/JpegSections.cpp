@@ -235,16 +235,22 @@ void JpegSections::ReadDQT(std::ifstream&  afile) {
           table.Tq  = (markerBuffer >> 4) & 0x0F;
           ++currentLength;
 
+          int Qbuffer = 0;
           for (int i = 0; i < 64; ++i) {
             afile >> markerBuffer;
-            table.Q[i] = markerBuffer;
+            //table.Q[i] = markerBuffer;
+            QBuffer = markerBuffer;
             ++currentLength;
 
             if (table.Pq) {
+              QBuffer = QBuffer << 8;
               afile >> markerBuffer;
-              table.Q[i]|= markerBuffer << 8;
+              //table.Q[i]|= markerBuffer << 8;
+              QBuffer |= markerBuffer;
               ++currentLength;
             }
+
+            Q.Push(QBuffer);
           }
 
           DQT.tables.push_back(table);
@@ -312,7 +318,17 @@ void JpegSections::ReadDHT(std::ifstream&  afile) {
   }
 }
 
+uint8_t JpegSections::ReadImage(std::ifstream&  afile) {
+  if (SOF[jpegSOF].X || SOF[jpegSOF].Y) {
+    afile.seekg(offsetToData);
 
+    uint8_t buffer;
+
+    afile >> buffer;
+    return buffer;
+  }
+  return 0x00;
+}
 
 
 

@@ -18,26 +18,6 @@ JpegSections jpeg;
 int main(int argc, char *argv[])
 {
 
-  ZZMatrix<int, 5, 5> m;
-
-  m.Init(0);
-
-  for (int i = 0; i < 25; ++i) {
-      int g;
-    std::cin >> g;
-    m.Push(g);
-
-    for (int y = 0; y < 5; ++y) {
-      for (int x = 0; x < 5; ++x) {
-        std::cout << m.Get(y,x) << " ";
-
-      }
-      std::cout << endl;
-    }
-    std::cout << endl;
-  }
-
-/*
     Mat img = imread("lena.jpg", CV_LOAD_IMAGE_COLOR);
     if(img.empty())
        return -1;
@@ -52,7 +32,7 @@ int main(int argc, char *argv[])
 
     namedWindow( "lena", CV_WINDOW_AUTOSIZE );
     imshow("lena", img);
-*/
+
     waitKey(0);
     return 0;
 }

@@ -40,6 +40,10 @@ class ZZMatrix
       return m[y][x];
     }
 
+    T Get(int y, int x) {
+      return m[y][x];
+    }
+
     void NextStep();
 
     bool IsTopBorderAchiev()    { return (y == 0); };
