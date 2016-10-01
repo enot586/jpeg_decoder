@@ -12,29 +12,29 @@ using namespace cv;
 using namespace std;
 
 
-JpegSections jpeg;
 
 
 int main(int argc, char *argv[])
 {
+  Mat img = imread("lena.jpg", CV_LOAD_IMAGE_COLOR);
+  if(img.empty())
+     return -1;
 
-    Mat img = imread("lena.jpg", CV_LOAD_IMAGE_COLOR);
-    if(img.empty())
-       return -1;
 
+  try {
     string file("lena.jpg");
+    JpegSections jpegHeader(file);
+    JpegDecoder jpegDecoder(jpegHeader);
 
-    try {
-      jpeg.AssignFile( file );
-    } catch (std::invalid_argument& e) {
+  } catch (std::exception& e) {
 
-    }
+  }
 
-    namedWindow( "lena", CV_WINDOW_AUTOSIZE );
-    imshow("lena", img);
+  namedWindow( "lena", CV_WINDOW_AUTOSIZE );
+  imshow("lena", img);
 
-    waitKey(0);
-    return 0;
+  waitKey(0);
+  return 0;
 }
 
 

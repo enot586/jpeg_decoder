@@ -5,30 +5,39 @@
 #include <string>
 #include <list>
 #include <vector>
+#include "ZZMatrix.h"
 
 using namespace std;
 
 class JpegSections
 {
-
   public:
-    JpegSections();
+    JpegSections(std::string& fileName);
     virtual ~JpegSections();
 
-    void  AssignFile(std::string& fileName);
+    uint8_t  ReadByteFromImage();
 
   protected:
-    bool  SearchSOI(std::ifstream&  afile);
+    void  AssignFile(std::string& fileName);
+    bool  SearchSOI();
     int   SearchSOF();
-    bool  ReadSOF(int sofNumber, std::ifstream& afile);
-    void  ReadFrameComponents(std::ifstream&  afile);
-    void  ReadSOS(std::ifstream&  afile);
-    void  ReadDQT(std::ifstream&  afile);
-    void  ReadDHT(std::ifstream&  afile);
-    uint8_t ReadImage(std::ifstream&  afile);
+    bool  ReadSOF(int sofNumber);
+    void  ReadFrameComponents();
+    void  ReadSOS();
+    void  ReadDQT();
+    void  ReadDHT();
+    void  GotoImage();
 
+  public:
+    const uint8_t RST0[2] = { 0xFF, 0xD0 };
+    const uint8_t RST1[2] = { 0xFF, 0xD1 };
+    const uint8_t RST2[2] = { 0xFF, 0xD2 };
+    const uint8_t RST3[2] = { 0xFF, 0xD3 };
+    const uint8_t RST4[2] = { 0xFF, 0xD4 };
+    const uint8_t RST5[2] = { 0xFF, 0xD5 };
+    const uint8_t RST6[2] = { 0xFF, 0xD6 };
+    const uint8_t RST7[2] = { 0xFF, 0xD7 };
 
-  private:
     const uint8_t  SOI[2] = { 0xFF, 0xD8 };
 
     struct  {
@@ -78,6 +87,12 @@ class JpegSections
       uint8_t Al;
     } SOS;
 
+    struct {
+      const uint8_t  marker[2] = { 0xFF, 0xDA };
+      uint16_t Ld;
+      uint16_t NL;
+    } DNL;
+
     struct DQTTableElement {
       uint8_t  Pq;
       uint8_t  Tq;
@@ -96,7 +111,7 @@ class JpegSections
       uint8_t  Tc;
       uint8_t  Th;
       uint8_t  L[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-      std::list<uint8_t> V[16];
+      std::vector<uint8_t> V[16];
     };
 
     struct  {
@@ -105,14 +120,12 @@ class JpegSections
       std::list<DHTTableElement> tables;
     } DHT;
 
-    auto_ptr<uint8_t> pImageData;
-
     const uint8_t  EOI[2] = { 0xFF, 0xD9 };
 
+  private:
     std::ifstream  afile;
     int jpegSOF = 0;
     uint32_t offsetToData = 0;
-
 };
 
 #endif // JPEGSECTIONS_H

@@ -47,12 +47,11 @@
 		</Linker>
 		<Unit filename="include/JpegDecoder.h" />
 		<Unit filename="include/JpegSections.h" />
-		<Unit filename="include/ZigZagMatrix.h" />
+		<Unit filename="include/ZZMatrix.h" />
 		<Unit filename="lena.jpg" />
 		<Unit filename="main.cpp" />
 		<Unit filename="src/JpegDecoder.cpp" />
 		<Unit filename="src/JpegSections.cpp" />
-		<Unit filename="src/ZigZagMatrix.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

@@ -6,9 +6,10 @@
 
 using namespace std;
 
-JpegSections::JpegSections()
+JpegSections::JpegSections(std::string& fileName)
 {
   SOF.resize(9);
+  AssignFile(fileName);
 }
 
 JpegSections::~JpegSections()
@@ -19,7 +20,7 @@ JpegSections::~JpegSections()
 void JpegSections::AssignFile(std::string& fileName) {
   afile.open(fileName, ios::binary);
 
-  if ( !SearchSOI(afile) ) {
+  if ( !SearchSOI() ) {
     throw std::invalid_argument("Input Can't find JPEG SOI");
   }
 
@@ -29,16 +30,16 @@ void JpegSections::AssignFile(std::string& fileName) {
     throw std::invalid_argument("Can't find JPEG SOF");
   }
 
-  if ( !ReadSOF(jpegSOF, afile) ) {
+  if ( !ReadSOF(jpegSOF) ) {
     throw std::invalid_argument("Invalid JPEG SOF0");
   }
 
-  ReadDQT(afile);
-  ReadDHT(afile);
-  ReadSOS(afile);
+  ReadDQT();
+  ReadDHT();
+  ReadSOS();
 }
 
-bool JpegSections::SearchSOI(std::ifstream&  afile) {
+bool JpegSections::SearchSOI() {
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
 
@@ -80,7 +81,7 @@ int JpegSections::SearchSOF() {
   return (-1);
 }
 
-bool JpegSections::ReadSOF(int sofNumber, std::ifstream&  afile) {
+bool JpegSections::ReadSOF(int sofNumber) {
 
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
@@ -114,12 +115,12 @@ bool JpegSections::ReadSOF(int sofNumber, std::ifstream&  afile) {
   afile >> markerBuffer;
   SOF[sofNumber].Nf  = markerBuffer;
 
-  ReadFrameComponents(afile);
+  ReadFrameComponents();
 
   return true;
 }
 
-void JpegSections::ReadFrameComponents(std::ifstream&  afile) {
+void JpegSections::ReadFrameComponents() {
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
 
@@ -148,7 +149,7 @@ void JpegSections::ReadFrameComponents(std::ifstream&  afile) {
   }
 }
 
-void JpegSections::ReadSOS(std::ifstream&  afile) {
+void JpegSections::ReadSOS() {
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
 
@@ -201,7 +202,7 @@ void JpegSections::ReadSOS(std::ifstream&  afile) {
   }
 }
 
-void JpegSections::ReadDQT(std::ifstream&  afile) {
+void JpegSections::ReadDQT() {
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
 
@@ -237,20 +238,21 @@ void JpegSections::ReadDQT(std::ifstream&  afile) {
 
           int Qbuffer = 0;
           for (int i = 0; i < 64; ++i) {
-            afile >> markerBuffer;
+            uint8_t byteBuffer = 0;
+            afile >> byteBuffer;
             //table.Q[i] = markerBuffer;
-            QBuffer = markerBuffer;
+            Qbuffer = byteBuffer;
             ++currentLength;
 
             if (table.Pq) {
-              QBuffer = QBuffer << 8;
-              afile >> markerBuffer;
+              Qbuffer = Qbuffer << 8;
+              afile >> byteBuffer;
               //table.Q[i]|= markerBuffer << 8;
-              QBuffer |= markerBuffer;
+              Qbuffer |= byteBuffer;
               ++currentLength;
             }
 
-            Q.Push(QBuffer);
+            table.Q.Push(Qbuffer);
           }
 
           DQT.tables.push_back(table);
@@ -262,7 +264,7 @@ void JpegSections::ReadDQT(std::ifstream&  afile) {
   }
 }
 
-void JpegSections::ReadDHT(std::ifstream&  afile) {
+void JpegSections::ReadDHT() {
   if ( !afile.good() )
     throw std::invalid_argument("Input file error !");
 
@@ -318,17 +320,14 @@ void JpegSections::ReadDHT(std::ifstream&  afile) {
   }
 }
 
-uint8_t JpegSections::ReadImage(std::ifstream&  afile) {
-  if (SOF[jpegSOF].X || SOF[jpegSOF].Y) {
+void JpegSections::GotoImage() {
+  /*if (SOF[jpegSOF].X || SOF[jpegSOF].Y)*/ {
     afile.seekg(offsetToData);
-
-    uint8_t buffer;
-
-    afile >> buffer;
-    return buffer;
   }
-  return 0x00;
 }
 
-
-
+uint8_t  JpegSections::ReadByteFromImage() {
+  uint8_t buffer;
+  afile >> buffer;
+  return buffer;
+}

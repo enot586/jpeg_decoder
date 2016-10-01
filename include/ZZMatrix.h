@@ -36,9 +36,6 @@ class ZZMatrix
     }
 
     void Push(T el);
-    T Get(int y, int x) {
-      return m[y][x];
-    }
 
     T Get(int y, int x) {
       return m[y][x];
