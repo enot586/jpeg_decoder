@@ -17,6 +17,18 @@ class JpegSections
 
     uint8_t  ReadByteFromImage();
 
+    int GetComponentsNumber();
+    int GetComponentH(int Cid);
+    int GetComponentV(int Cid);
+    int GetComponentTq(int Cid);
+    int GetComponentTd(int Cid);
+    int GetComponentTa(int Cid);
+
+    int GetComponentHmax();
+    int GetComponentVmax();
+
+
+
   protected:
     void  AssignFile(std::string& fileName);
     bool  SearchSOI();
@@ -107,6 +119,9 @@ class JpegSections
     } DQT;
 
 
+    const uint8_t HUFFMAN_TABLE_DC = 0x00;
+    const uint8_t HUFFMAN_TABLE_AC = 0x01;
+
     struct DHTTableElement {
       uint8_t  Tc;
       uint8_t  Th;
@@ -121,6 +136,11 @@ class JpegSections
     } DHT;
 
     const uint8_t  EOI[2] = { 0xFF, 0xD9 };
+
+  protected:
+    JpegFrameHeader& GetCurrentSof() {
+      return SOF[jpegSOF];
+    };
 
   private:
     std::ifstream  afile;

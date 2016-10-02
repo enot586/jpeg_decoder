@@ -1,17 +1,32 @@
 #include "JpegDecoder.h"
 #include <iostream>
+#include <algorithm>
 
 
-JpegDecoder::JpegDecoder(JpegSections& sections_) : sections(sections_)
-{
-  GenerateHUFFSIZE( sections.DHT.tables.front().L, HUFFSIZE_ );
-  GenerateHUFFCODE( HUFFSIZE_, HUFFCODE_ );
-  GenerateDecoderTables( sections.DHT.tables.front().L,
-                         HUFFCODE_, MINCODE_, MAXCODE_, VALPTR_ );
+
+JpegDecoder::JpegDecoder(JpegSections& sections_) : sections(sections_) {
+  for (std::list<JpegSections::DHTTableElement>::iterator it = sections.DHT.tables.begin();
+       it != sections.DHT.tables.end(); ++it) {
+    HuffTableContext buffer;
+
+    GenerateHUFFSIZE( it->L, buffer.HUFFSIZE );
+    GenerateHUFFCODE( buffer.HUFFSIZE, buffer.HUFFCODE );
+    GenerateDecoderTables( it->L,
+                           buffer.HUFFCODE, buffer.MINCODE, buffer.MAXCODE, buffer.VALPTR );
+
+    //TODO: optimize !!!
+    for (int i = 0; i < 16; ++i) {
+      copy ( it->V[i].begin(), it->V[i].end(), buffer.HUFFVAL[i].begin() );
+    }
+
+    uint8_t huffmanTableId = (it->Tc << 4) | (it->Th);
+
+    //insert new decode huffman tables
+    huffDecodeTables[huffmanTableId] = buffer;
+  }
 }
 
-JpegDecoder::~JpegDecoder()
-{
+JpegDecoder::~JpegDecoder() {
   //dtor
 }
 
@@ -97,8 +112,8 @@ void JpegDecoder::GenerateDecoderTables(const uint8_t* BITS,
       MINCODE[i] = HUFFCODE[j];
       j = j + BITS[i] - 1;
       MAXCODE[i] = HUFFCODE[j];
-      std::cout << "MINCODE["<<i<<"] = " << MINCODE[i];
-      std::cout << "\t MAXCODE["<<i<<"] = " << MAXCODE[i];
+      std::cout << "MINCODE["<< i <<"] = " << std::hex << MINCODE[i];
+      std::cout << "\t MAXCODE["<<i<<"] = " << std::hex << MAXCODE[i];
       std::cout << "\t VALPTR["<<i<<"] = " << VALPTR[i] << endl;
       ++j;
     }
@@ -163,6 +178,27 @@ uint8_t JpegDecoder::Decode(const std::vector<int>& MINCODE,
 
 void JpegDecoder::DecodeNextBlock(ZZMatrix<int, 8, 8>& block) {
 
+
+  for (int i = 1; i <= sections.GetComponentsNumber(); ++i) {
+    int totalAmountCiComponents = sections.GetComponentH(i) * sections.GetComponentV(i);
+
+    for (int j = 1; j <= totalAmountCiComponents; ++j) {
+      int Td = sections.GetComponentTd(i);
+      int huffTableId = (sections.HUFFMAN_TABLE_DC << 4) | Td;
+
+      HuffTableContext huffDecodeTableSet = huffDecodeTables[huffTableId];
+
+      uint8_t DCVal = Decode(huffDecodeTableSet.MINCODE, huffDecodeTableSet.MAXCODE,
+                              huffDecodeTableSet.VALPTR, huffDecodeTableSet.HUFFVAL[0]); //@FIXME: HUFFVAL[0] !!!!
+
+      ZZMatrix<int, 8, 8> currentBlock;
+
+      currentBlock.Push(DCVal);
+
+
+
+    }
+  }
 
 
 

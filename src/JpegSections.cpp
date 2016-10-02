@@ -331,3 +331,53 @@ uint8_t  JpegSections::ReadByteFromImage() {
   afile >> buffer;
   return buffer;
 }
+
+int JpegSections::GetComponentsNumber() {
+  return  GetCurrentSof().Nf;
+}
+
+int JpegSections::GetComponentH(int Cid) {
+  if ((Cid == 0) || (Cid > GetCurrentSof().Nf)) return 0;
+  return (GetCurrentSof().components[Cid-1].C == Cid) ? GetCurrentSof().components[Cid-1].H : 0;
+}
+
+int JpegSections::GetComponentV(int Cid) {
+  if ((Cid == 0) || (Cid > GetCurrentSof().Nf)) return 0;
+  return (GetCurrentSof().components[Cid-1].C == Cid) ? GetCurrentSof().components[Cid-1].V : 0;
+}
+
+int JpegSections::GetComponentTq(int Cid) {
+  if ((Cid == 0) || (Cid > GetCurrentSof().Nf)) return 0;
+  return (GetCurrentSof().components[Cid-1].C == Cid) ? GetCurrentSof().components[Cid-1].Tq : 0;
+}
+
+int JpegSections::GetComponentTd(int Cid) {
+  if ((Cid == 0) || (Cid > GetCurrentSof().Nf)) return 0;
+  return (SOS.scanComponents[Cid-1].C == Cid) ? SOS.scanComponents[Cid-1].Td : 0;
+}
+
+int JpegSections::GetComponentTa(int Cid) {
+  if ((Cid == 0) || (Cid > GetCurrentSof().Nf)) return 0;
+  return (SOS.scanComponents[Cid-1].C == Cid) ? SOS.scanComponents[Cid-1].Ta : 0;
+}
+
+int JpegSections::GetComponentHmax() {
+  int Hmax = 0;
+  for (int i = 0; i < GetCurrentSof().components.size(); ++i) {
+    int current = GetCurrentSof().components[i].H;
+    if ( current > Hmax) Hmax = current;
+  }
+
+  return Hmax;
+}
+
+int JpegSections::GetComponentVmax() {
+  int Vmax = 0;
+  for (int i = 0; i < GetCurrentSof().components.size(); ++i) {
+    int current = GetCurrentSof().components[i].V;
+    if ( current > Vmax) Vmax = current;
+  }
+
+  return Vmax;
+}
+

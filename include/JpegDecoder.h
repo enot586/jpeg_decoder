@@ -3,7 +3,7 @@
 
 #include "JpegSections.h"
 
-
+#include <map>
 using namespace std;
 
 
@@ -13,11 +13,17 @@ class JpegDecoder {
     virtual ~JpegDecoder();
 
   protected:
-    std::vector<int> HUFFSIZE_;
-    std::vector<int> HUFFCODE_;
-    std::vector<int> MINCODE_;
-    std::vector<int> MAXCODE_;
-    std::vector<int> VALPTR_;
+
+    struct HuffTableContext{;
+      std::vector<int> HUFFSIZE;
+      std::vector<int> HUFFCODE;
+      std::vector<int> HUFFVAL[16];
+      std::vector<int> MINCODE;
+      std::vector<int> MAXCODE;
+      std::vector<int> VALPTR;
+    };
+
+    std::map < uint8_t, HuffTableContext > huffDecodeTables;
 
     void GenerateHUFFSIZE(const uint8_t* BITS, std::vector<int>& HUFFSIZE);
     void GenerateHUFFCODE(const std::vector<int>& HUFFSIZE,std::vector<int>& HUFFCODE);

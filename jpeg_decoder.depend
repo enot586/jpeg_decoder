@@ -291,14 +291,16 @@
 1449835037 d:\opencv\build\include\opencv2\imgcodecs\imgcodecs.hpp
 	"opencv2/imgcodecs.hpp"
 
-1475393398 d:\projects\jpeg_decoder\include\jpegdecoder.h
+1475428747 d:\projects\jpeg_decoder\include\jpegdecoder.h
 	"JpegSections.h"
+	<map>
 
-1475395587 source:d:\projects\jpeg_decoder\src\jpegdecoder.cpp
+1475428587 source:d:\projects\jpeg_decoder\src\jpegdecoder.cpp
 	"JpegDecoder.h"
 	<iostream>
+	<algorithm>
 
-1475393495 d:\projects\jpeg_decoder\include\jpegsections.h
+1475427743 d:\projects\jpeg_decoder\include\jpegsections.h
 	<fstream>
 	<memory>
 	<string>
@@ -306,7 +308,7 @@
 	<vector>
 	"ZZMatrix.h"
 
-1475392267 source:d:\projects\jpeg_decoder\src\jpegsections.cpp
+1475428624 source:d:\projects\jpeg_decoder\src\jpegsections.cpp
 	"JpegSections.h"
 	<stdexcept>
 	<exception>
