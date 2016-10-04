@@ -12,7 +12,7 @@ JpegDecoder::JpegDecoder(JpegSections& sections_) : sections(sections_) {
     GenerateHUFFSIZE( it->L, buffer.HUFFSIZE );
     GenerateHUFFCODE( buffer.HUFFSIZE, buffer.HUFFCODE );
     GenerateDecoderTables( it->L,
-                           buffer.HUFFCODE, buffer.MINCODE, buffer.MAXCODE, buffer.VALPTR );
+                           buffer.HUFFCODE, buffer.MINCODE, buffer.MAXCODE );
 
     //TODO: optimize !!!
     for (int i = 0; i < 16; ++i) {
@@ -91,16 +91,13 @@ void JpegDecoder::GenerateHUFFCODE(const std::vector<int>& HUFFSIZE,
 void JpegDecoder::GenerateDecoderTables(const uint8_t* BITS,
                                         const std::vector<int>& HUFFCODE,
                                         std::vector<int>& MINCODE,
-                                        std::vector<int>& MAXCODE,
-                                        std::vector<int>& VALPTR) {
+                                        std::vector<int>& MAXCODE) {
   MAXCODE.resize(16);
   MINCODE.resize(16);
-  VALPTR.resize(16);
 
   for (int i = 0; i < 16; ++i) {
     MAXCODE[i] = 0;
     MINCODE[i] = 0;
-    VALPTR[i] = 0;
   }
 
   int j = 0;
@@ -108,13 +105,12 @@ void JpegDecoder::GenerateDecoderTables(const uint8_t* BITS,
     if (BITS[i] == 0) {
       MAXCODE[i] = -1;
     } else {
-      VALPTR[i] = j;
       MINCODE[i] = HUFFCODE[j];
       j = j + BITS[i] - 1;
       MAXCODE[i] = HUFFCODE[j];
-      std::cout << "MINCODE["<< i <<"] = " << std::hex << MINCODE[i];
-      std::cout << "\t MAXCODE["<<i<<"] = " << std::hex << MAXCODE[i];
-      std::cout << "\t VALPTR["<<i<<"] = " << VALPTR[i] << endl;
+      std::cout << "MINCODE[" << i << "] = 0x" << std::hex << MINCODE[i];
+      std::cout << "\t MAXCODE[" << i << "] = 0x" << std::hex << MAXCODE[i];
+      std::cout << endl;
       ++j;
     }
   }
@@ -144,7 +140,7 @@ uint8_t JpegDecoder::ReadNextBit() {
           return 0x00;
         }
       }
-    } while (!cnt /*&& !afile.eof()*/);
+    } while (!cnt);
   }
 
   if (cnt) {
@@ -157,8 +153,7 @@ uint8_t JpegDecoder::ReadNextBit() {
 
 uint8_t JpegDecoder::Decode(const std::vector<int>& MINCODE,
                             const std::vector<int>& MAXCODE,
-                            const std::vector<int>& VALPTR,
-                            const std::vector<int>& HUFFVAL) {
+                            const std::vector<int> HUFFVAL[]) {
   int i = 0;
   int code = ReadNextBit();
 
@@ -167,42 +162,96 @@ uint8_t JpegDecoder::Decode(const std::vector<int>& MINCODE,
       ++i;
       code = (code << 1) | ReadNextBit();
     } else {
-      int j = VALPTR[i];
-      j = j+code-MINCODE[i];
-      return HUFFVAL[j];
+      int offset = code - MINCODE[i];
+      return HUFFVAL[i].at(offset);
     }
   }
 
   return 0;
 }
 
-void JpegDecoder::DecodeNextBlock(ZZMatrix<int, 8, 8>& block) {
+int JpegDecoder::EXTEND(int V, int T) {
+  int Vt = 2 << (T-1);
 
+  if (V < Vt) {
+    Vt = ((uint16_t)(-1) >> T) + 1;
+    V+= Vt;
+  }
+
+  return V;
+}
+
+int JpegDecoder::DCDecode(int Cid) {
+  int Td = sections.GetComponentTd(Cid);
+  int huffTableId = (sections.HUFFMAN_TABLE_DC << 4) | Td;
+
+  HuffTableContext huffDecodeTableSet = huffDecodeTables[huffTableId];
+
+  uint8_t DCValBitLength = Decode(huffDecodeTableSet.MINCODE, huffDecodeTableSet.MAXCODE,
+                                  huffDecodeTableSet.HUFFVAL);
+
+  return DecodeFromBitLength(DCValBitLength);
+}
+
+int JpegDecoder::DecodeFromBitLength(int bitLength) {
+  int Ampl = 0;
+
+  for (int i = 0; i < bitLength; ++i) {
+    Ampl |= ReadNextBit();
+    Ampl = Ampl << 1;
+  }
+
+  if (Ampl) {
+    Ampl = EXTEND(Ampl, bitLength);
+  }
+
+  return Ampl;
+}
+
+void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
+
+  int DCAmpl = DCDecode(Cid);
+  block.Push(DCAmpl);
+
+  int Ta = sections.GetComponentTa(Cid);
+  int huffTableId = (sections.HUFFMAN_TABLE_AC << 4) | Ta;
+
+  HuffTableContext huffDecodeTableSet = huffDecodeTables[huffTableId];
+
+  uint8_t code = 0;
+  for (int k = 0; k < 63; ++k) {
+      code = Decode(huffDecodeTableSet.MINCODE, huffDecodeTableSet.MAXCODE,
+                    huffDecodeTableSet.HUFFVAL);
+
+      int SSSS = code % 16;
+      int RRRR = code >> 4;
+
+      if (SSSS) {
+        k+= RRRR;
+        block.Push( DecodeFromBitLength(SSSS) );
+      } else if (RRRR == 15) {
+        k+= 16;
+      } else {
+        break;
+      }
+
+  }
+
+
+}
+
+void JpegDecoder::DecodeNextBlock(ZZMatrix<int, 8, 8>& block) {
+  ZZMatrix<int, 8, 8> currentBlock;
 
   for (int i = 1; i <= sections.GetComponentsNumber(); ++i) {
     int totalAmountCiComponents = sections.GetComponentH(i) * sections.GetComponentV(i);
 
     for (int j = 1; j <= totalAmountCiComponents; ++j) {
-      int Td = sections.GetComponentTd(i);
-      int huffTableId = (sections.HUFFMAN_TABLE_DC << 4) | Td;
-
-      HuffTableContext huffDecodeTableSet = huffDecodeTables[huffTableId];
-
-      uint8_t DCVal = Decode(huffDecodeTableSet.MINCODE, huffDecodeTableSet.MAXCODE,
-                              huffDecodeTableSet.VALPTR, huffDecodeTableSet.HUFFVAL[0]); //@FIXME: HUFFVAL[0] !!!!
-
-      ZZMatrix<int, 8, 8> currentBlock;
-
-      currentBlock.Push(DCVal);
-
+      DecodeBlock(i, currentBlock);
 
 
     }
   }
-
-
-
-
 
 }
 
