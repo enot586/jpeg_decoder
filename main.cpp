@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
     JpegSections jpegHeader(file);
     JpegDecoder jpegDecoder(jpegHeader);
 
+    jpegDecoder.run();
   } catch (std::exception& e) {
 
   }

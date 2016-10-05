@@ -16,6 +16,7 @@ JpegDecoder::JpegDecoder(JpegSections& sections_) : sections(sections_) {
 
     //TODO: optimize !!!
     for (int i = 0; i < 16; ++i) {
+      buffer.HUFFVAL[i].resize(it->V[i].size());
       copy ( it->V[i].begin(), it->V[i].end(), buffer.HUFFVAL[i].begin() );
     }
 
@@ -49,7 +50,7 @@ void JpegDecoder::GenerateHUFFSIZE(const uint8_t* BITS, std::vector<int>& HUFFSI
   while ( i < 16 ) {
     if (j <= BITS[i]) {
       HUFFSIZE[k] = i;
-      std::cout << "HUFFSIZE["<<k<<"] = " << HUFFSIZE[k] << endl;
+      std::cout << "HUFFSIZE[" << std::dec << k << "] = 0x" << std::hex << HUFFSIZE[k] << endl;
       ++k;
       ++j;
     } else {
@@ -62,7 +63,7 @@ void JpegDecoder::GenerateHUFFSIZE(const uint8_t* BITS, std::vector<int>& HUFFSI
 }
 
 void JpegDecoder::GenerateHUFFCODE(const std::vector<int>& HUFFSIZE,
-                                   std::vector<int>& HUFFCODE) {
+                                   std::vector<uint16_t>& HUFFCODE) {
 
   HUFFCODE.resize( HUFFSIZE.size() );
 
@@ -70,12 +71,12 @@ void JpegDecoder::GenerateHUFFCODE(const std::vector<int>& HUFFSIZE,
     HUFFCODE[i] = 0;
   }
 
-  int code = 0;
+  int16_t code = 0;
   int si = HUFFSIZE[0];
 
-  for (int k = 0; k < HUFFSIZE.size(); ++k) {
+  for (int k = 0; k < HUFFSIZE.size()-1; ++k) {
     HUFFCODE[k] = code;
-    std::cout << "HUFFCODE["<<k<<"] = " << HUFFCODE[k] << endl;
+    std::cout << "HUFFCODE[" << std::dec << k << "] = 0x" << std::hex << HUFFCODE[k] << endl;
     ++code;
 
     while ( HUFFSIZE[k] != si ) {
@@ -89,9 +90,9 @@ void JpegDecoder::GenerateHUFFCODE(const std::vector<int>& HUFFSIZE,
 }
 
 void JpegDecoder::GenerateDecoderTables(const uint8_t* BITS,
-                                        const std::vector<int>& HUFFCODE,
-                                        std::vector<int>& MINCODE,
-                                        std::vector<int>& MAXCODE) {
+                                        const std::vector<uint16_t>& HUFFCODE,
+                                        std::vector<uint16_t>& MINCODE,
+                                        std::vector<uint16_t>& MAXCODE) {
   MAXCODE.resize(16);
   MINCODE.resize(16);
 
@@ -103,13 +104,14 @@ void JpegDecoder::GenerateDecoderTables(const uint8_t* BITS,
   int j = 0;
   for (int i = 0; i < 16; ++i) {
     if (BITS[i] == 0) {
-      MAXCODE[i] = -1;
+      MAXCODE[i] = (int16_t)(-1);
     } else {
       MINCODE[i] = HUFFCODE[j];
       j = j + BITS[i] - 1;
       MAXCODE[i] = HUFFCODE[j];
-      std::cout << "MINCODE[" << i << "] = 0x" << std::hex << MINCODE[i];
-      std::cout << "\t MAXCODE[" << i << "] = 0x" << std::hex << MAXCODE[i];
+      std::cout << "BITS[" << std::dec << i << "] = " << std::dec << (int)BITS[i];
+      std::cout << "\t MINCODE[" << std::dec << i << "] = 0x" << std::hex << MINCODE[i];
+      std::cout << "\t MAXCODE[" << std::dec << i << "] = 0x" << std::hex << MAXCODE[i];
       std::cout << endl;
       ++j;
     }
@@ -151,18 +153,18 @@ uint8_t JpegDecoder::ReadNextBit() {
   }
 }
 
-uint8_t JpegDecoder::Decode(const std::vector<int>& MINCODE,
-                            const std::vector<int>& MAXCODE,
-                            const std::vector<int> HUFFVAL[]) {
+uint8_t JpegDecoder::Decode(const std::vector<uint16_t>& MINCODE,
+                            const std::vector<uint16_t>& MAXCODE,
+                            const std::vector<uint16_t> HUFFVAL[]) {
   int i = 0;
-  int code = ReadNextBit();
+  uint16_t code = ReadNextBit();
 
   while (i < 16) {
     if (code > MAXCODE[i]) {
       ++i;
       code = (code << 1) | ReadNextBit();
     } else {
-      int offset = code - MINCODE[i];
+      uint16_t offset = code - MINCODE[i];
       return HUFFVAL[i].at(offset);
     }
   }
@@ -170,11 +172,11 @@ uint8_t JpegDecoder::Decode(const std::vector<int>& MINCODE,
   return 0;
 }
 
-int JpegDecoder::EXTEND(int V, int T) {
-  int Vt = 2 << (T-1);
+int16_t JpegDecoder::EXTEND(int V, int T) {
+  uint16_t Vt = 2 << (T-1);
 
   if (V < Vt) {
-    Vt = ((uint16_t)(-1) >> T) + 1;
+    Vt = ((int16_t)(-1) >> T) + 1;
     V+= Vt;
   }
 
@@ -209,7 +211,6 @@ int JpegDecoder::DecodeFromBitLength(int bitLength) {
 }
 
 void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
-
   int DCAmpl = DCDecode(Cid);
   block.Push(DCAmpl);
 
@@ -219,25 +220,24 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
   HuffTableContext huffDecodeTableSet = huffDecodeTables[huffTableId];
 
   uint8_t code = 0;
-  for (int k = 0; k < 63; ++k) {
-      code = Decode(huffDecodeTableSet.MINCODE, huffDecodeTableSet.MAXCODE,
-                    huffDecodeTableSet.HUFFVAL);
 
-      int SSSS = code % 16;
-      int RRRR = code >> 4;
+  // Number of AC elements == 63
+  for (int k = 0; k < 62; ++k) {
+    code = Decode(huffDecodeTableSet.MINCODE, huffDecodeTableSet.MAXCODE,
+                  huffDecodeTableSet.HUFFVAL);
 
-      if (SSSS) {
-        k+= RRRR;
-        block.Push( DecodeFromBitLength(SSSS) );
-      } else if (RRRR == 15) {
-        k+= 16;
-      } else {
-        break;
-      }
+    int SSSS = code % 16;
+    int RRRR = code >> 4;
 
+    if (SSSS) {
+      k+= RRRR;
+      block.Push( DecodeFromBitLength(SSSS) );
+    } else if (RRRR == 15) {
+      k+= 16;
+    } else {
+      break;
+    }
   }
-
-
 }
 
 void JpegDecoder::DecodeNextBlock(ZZMatrix<int, 8, 8>& block) {
@@ -248,11 +248,14 @@ void JpegDecoder::DecodeNextBlock(ZZMatrix<int, 8, 8>& block) {
 
     for (int j = 1; j <= totalAmountCiComponents; ++j) {
       DecodeBlock(i, currentBlock);
-
-
+      currentBlock.Print();
     }
   }
 
 }
 
+void JpegDecoder::run() {
+  ZZMatrix<int, 8, 8> block;
+  DecodeNextBlock(block);
 
+}

@@ -1,6 +1,8 @@
 #ifndef ZIGZAGMATRIX_H
 #define ZIGZAGMATRIX_H
 
+#include <iostream>
+
 template<typename T, int M, int N>
 class ZZMatrix
 {
@@ -27,6 +29,8 @@ class ZZMatrix
         }
       }
     }
+
+    void Print();
 
     void Reset() {
       x = 0;
@@ -137,6 +141,17 @@ void ZZMatrix<T,M,N>::Push(T el) {
   }
 }
 
+template<typename T, int M, int N>
+void ZZMatrix<T,M,N>::Print() {
+
+  for (int i = 0; i < M; ++i) {
+    for (int j = 0; j < N; ++j) {
+      std::cout << m[i][j] << " ";
+    }
+    std::cout << std::endl;
+  }
+
+}
 
 
 
