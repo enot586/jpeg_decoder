@@ -188,10 +188,10 @@ uint8_t JpegDecoder::Decode(const std::vector<uint16_t>& MINCODE,
 }
 
 int16_t JpegDecoder::EXTEND(int V, int T) {
-  uint16_t Vt = 2 << (T-1);
+  int16_t Vt = 2 << (T-1);
 
   if (V < Vt) {
-    Vt = ((int16_t)(-1) >> T) + 1;
+    Vt = ((uint16_t)(-1) << T) + 1;
     V+= Vt;
   }
 
@@ -214,8 +214,8 @@ int JpegDecoder::DecodeFromBitLength(int bitLength) {
   int Ampl = 0;
 
   for (int i = 0; i < bitLength; ++i) {
-    Ampl |= ReadNextBit();
     Ampl = Ampl << 1;
+    Ampl |= ReadNextBit();
   }
 
   if (Ampl) {
@@ -231,7 +231,7 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
 
   int DCAmpl = DCDecode(Cid);
 
-  //Decode DPCM
+  //Decode DPCM for DC coefficients
   dcDiff.at(Cid-1)+= DCAmpl;
 
   //Dequantization
@@ -272,15 +272,18 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
 }
 
 void JpegDecoder::DecodeNextBlock(ZZMatrix<int, 8, 8>& block) {
+
   ZZMatrix<int, 8, 8> currentBlock;
 
   for (int i = 1; i <= sections.GetComponentsNumber(); ++i) {
     int totalAmountCiComponents = sections.GetComponentH(i) * sections.GetComponentV(i);
 
+    currentBlock.Reset();
+    currentBlock.Init(0);
+
     for (int j = 1; j <= totalAmountCiComponents; ++j) {
       DecodeBlock(i, currentBlock);
       currentBlock.Print();
-      currentBlock.Reset();
       std::cout << endl;
     }
   }

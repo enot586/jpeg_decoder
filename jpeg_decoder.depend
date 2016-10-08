@@ -295,7 +295,7 @@
 	"JpegSections.h"
 	<map>
 
-1475944778 source:d:\projects\jpeg_decoder\src\jpegdecoder.cpp
+1475948279 source:d:\projects\jpeg_decoder\src\jpegdecoder.cpp
 	"JpegDecoder.h"
 	<iostream>
 	<algorithm>
@@ -322,6 +322,6 @@
 
 1475173201 d:\projects\jpeg_decoder\include\zigzagmatrix.h
 
-1475938966 d:\projects\jpeg_decoder\include\zzmatrix.h
+1475945443 d:\projects\jpeg_decoder\include\zzmatrix.h
 	<iostream>
 
