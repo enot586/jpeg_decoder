@@ -44,6 +44,7 @@ class JpegDecoder {
     JpegSections& sections;
     uint8_t currentByte = 0;
     uint8_t cnt = 0;
+    std::vector<int>  dcDiff;
 
 };
 

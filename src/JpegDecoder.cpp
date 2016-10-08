@@ -6,6 +6,16 @@
 
 JpegDecoder::JpegDecoder(JpegSections& sections_) : sections(sections_) {
 
+  if ( sections.GetComponentsNumber() ) {
+    dcDiff.resize( sections.GetComponentsNumber() );
+
+    for (int i = 0; i < dcDiff.size(); ++i) {
+      dcDiff[i] = 0;
+    }
+  } else {
+    throw std::invalid_argument("Error: Unsupported amount of image components");
+  }
+
   for (std::list<JpegSections::DHTTableElement>::iterator it = sections.DHT.tables.begin();
        it != sections.DHT.tables.end(); ++it) {
     HuffTableContext buffer;
@@ -15,7 +25,6 @@ JpegDecoder::JpegDecoder(JpegSections& sections_) : sections(sections_) {
     GenerateDecoderTables( it->L,
                            buffer.HUFFCODE, buffer.MINCODE, buffer.MAXCODE );
 
-    //TODO: optimize !!!
     for (int i = 0; i < 16; ++i) {
       buffer.HUFFVAL[i].resize(it->V[i].size());
       copy ( it->V[i].begin(), it->V[i].end(), buffer.HUFFVAL[i].begin() );
@@ -27,7 +36,6 @@ JpegDecoder::JpegDecoder(JpegSections& sections_) : sections(sections_) {
     //insert new decode huffman tables
     huffDecodeTables[huffmanTableId] = buffer;
   }
-
 }
 
 JpegDecoder::~JpegDecoder() {
@@ -223,11 +231,14 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
 
   int DCAmpl = DCDecode(Cid);
 
-  //Dequantization
-  DCAmpl = DCAmpl * Q.Get( block.GetCurrentY(),
-                           block.GetCurrentX() );
+  //Decode DPCM
+  dcDiff.at(Cid-1)+= DCAmpl;
 
-  block.Push(DCAmpl);
+  //Dequantization
+  dcDiff.at(Cid-1) = dcDiff.at(Cid-1) * Q.Get( block.GetCurrentY(),
+                                               block.GetCurrentX() );
+
+  block.Push( dcDiff.at(Cid-1) );
 
   int Ta = sections.GetComponentTa(Cid);
   int huffTableId = (sections.HUFFMAN_TABLE_AC << 4) | Ta;
@@ -248,7 +259,7 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
       k+= RRRR;
 
       int ACAmpl = DecodeFromBitLength(SSSS);
-      ACAmpl = ACAmpl = Q.Get( block.GetCurrentY(),
+      ACAmpl = ACAmpl * Q.Get( block.GetCurrentY(),
                                block.GetCurrentX() );
 
       block.Push( ACAmpl );
@@ -269,6 +280,7 @@ void JpegDecoder::DecodeNextBlock(ZZMatrix<int, 8, 8>& block) {
     for (int j = 1; j <= totalAmountCiComponents; ++j) {
       DecodeBlock(i, currentBlock);
       currentBlock.Print();
+      currentBlock.Reset();
       std::cout << endl;
     }
   }
