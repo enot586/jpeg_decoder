@@ -23,6 +23,7 @@ class JpegSections
     int GetComponentTq(int Cid);
     int GetComponentTd(int Cid);
     int GetComponentTa(int Cid);
+    ZZMatrix<int, 8,8>& GetQTable(int Cid);
 
     int GetComponentHmax();
     int GetComponentVmax();
@@ -72,10 +73,10 @@ class JpegSections
 
     struct  JpegFrameHeader {
       const uint8_t  marker[2] = { 0xFF, 0xC0 };
-      uint8_t  Lf[2] = { 0x00, 0x00 };
+      uint16_t  Lf;
       uint8_t  precision;
-      uint8_t  Y[2] = { 0x00, 0x00 };
-      uint8_t  X[2] = { 0x00, 0x00 };
+      uint16_t  Y;
+      uint16_t  X;
       uint8_t  Nf;
       std::vector<JpegFrameComponent> components;
     };
@@ -90,7 +91,7 @@ class JpegSections
 
     struct  {
       const uint8_t  marker[2] = { 0xFF, 0xDA };
-      uint8_t  Ls[2] = { 0x00, 0x00 };
+      uint16_t  Ls;
       uint8_t  Ns;
       std::vector<JpegSOSComponent> scanComponents;
       uint8_t Ss;
@@ -114,7 +115,7 @@ class JpegSections
 
     struct  {
       const uint8_t  marker[2] = { 0xFF, 0xDB };
-      uint8_t  Lq[2] = { 0x00, 0x00 };
+      uint16_t  Lq;
       std::list<DQTTableElement> tables;
     } DQT;
 
@@ -131,7 +132,7 @@ class JpegSections
 
     struct  {
       const uint8_t  marker[2] = { 0xFF, 0xC4 };
-      uint8_t  Lh[2] = { 0x00, 0x00 };
+      uint16_t  Lh;
       std::list<DHTTableElement> tables;
     } DHT;
 

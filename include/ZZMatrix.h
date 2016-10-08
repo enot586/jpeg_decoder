@@ -52,6 +52,9 @@ class ZZMatrix
     bool IsRightBorderAchive()  { return (x == sizeX - 1); };
     bool IsBottomBorderAchive() { return (y == sizeY - 1); };
 
+    int GetCurrentY();
+    int GetCurrentX();
+
   protected:
     void GotoRight();
     void GotoDown();
@@ -142,11 +145,21 @@ void ZZMatrix<T,M,N>::Push(T el) {
 }
 
 template<typename T, int M, int N>
+int ZZMatrix<T,M,N>::GetCurrentX() {
+  return x;
+}
+
+template<typename T, int M, int N>
+int ZZMatrix<T,M,N>::GetCurrentY() {
+  return y;
+}
+
+template<typename T, int M, int N>
 void ZZMatrix<T,M,N>::Print() {
 
   for (int i = 0; i < M; ++i) {
     for (int j = 0; j < N; ++j) {
-      std::cout << m[i][j] << " ";
+      std::cout << std::dec << static_cast<int16_t>(m[i][j]) << "\t";
     }
     std::cout << std::endl;
   }

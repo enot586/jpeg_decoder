@@ -1,7 +1,6 @@
 #include "JpegSections.h"
 #include <stdexcept>
 #include <exception>
-#include <exception>
 #include <iostream>
 
 using namespace std;
@@ -21,17 +20,17 @@ void JpegSections::AssignFile(std::string& fileName) {
   afile.open(fileName, ios::binary);
 
   if ( !SearchSOI() ) {
-    throw std::invalid_argument("Input Can't find JPEG SOI");
+    throw std::invalid_argument("Error: Input Can't find JPEG SOI");
   }
 
   jpegSOF = SearchSOF();
 
   if (jpegSOF == -1) {
-    throw std::invalid_argument("Can't find JPEG SOF");
+    throw std::invalid_argument("Error: Can't find JPEG SOF");
   }
 
   if ( !ReadSOF(jpegSOF) ) {
-    throw std::invalid_argument("Invalid JPEG SOF0");
+    throw std::invalid_argument("Error: Invalid JPEG SOF0");
   }
 
   ReadDQT();
@@ -41,16 +40,21 @@ void JpegSections::AssignFile(std::string& fileName) {
 
 bool JpegSections::SearchSOI() {
   if ( !afile.good() )
-    throw std::invalid_argument("Input file error !");
+    throw std::invalid_argument("Error: Input file error !");
 
-  uint8_t markerBuffer = 0;
+  char  markerBuffer = 0;
+
+  afile.seekg(0);
 
   while ( !afile.eof() ) {
-    afile >> markerBuffer;
 
-    if (markerBuffer == SOI[0]) {
-      afile >> markerBuffer;
-      if (markerBuffer == SOI[1]) {
+    afile.read(&markerBuffer, 1);
+
+    if ( (unsigned char)markerBuffer == SOI[0] ) {
+
+      afile.read(&markerBuffer, 1);
+
+      if ( (unsigned char)markerBuffer == SOI[1] ) {
         return true;
       }
     }
@@ -61,19 +65,27 @@ bool JpegSections::SearchSOI() {
 
 int JpegSections::SearchSOF() {
   if ( !afile.good() )
-    throw std::invalid_argument("Input file error !");
+    throw std::invalid_argument("Error: Input file error !");
 
-  uint32_t buffer = 0;
-  uint8_t markerBuffer = 0;
+  char markerBuffer = 0;
+  afile.seekg(0);
 
   while ( !afile.eof() ) {
-    afile >> markerBuffer;
 
-    if (markerBuffer == SOF[0].marker[0]) {
-      afile >> markerBuffer;
-      int sofNumber = markerBuffer - SOF[0].marker[1];
-      if ( sofNumber < SOF.size() ) {
-        return sofNumber;
+    afile.read(&markerBuffer, 1);
+
+    if ( (unsigned char)markerBuffer == SOF[0].marker[0] ) {
+
+      afile.read(&markerBuffer, 1);
+
+      if ( (((unsigned char)markerBuffer) >= SOF[0].marker[1]) &&
+           (((unsigned char)markerBuffer) <= SOF[0].marker[1]+3) ) {
+
+        int sofNumber = (unsigned char)markerBuffer - SOF[0].marker[1];
+
+        if ( sofNumber < SOF.size() ) {
+          return sofNumber;
+        }
       }
     }
   }
@@ -84,35 +96,35 @@ int JpegSections::SearchSOF() {
 bool JpegSections::ReadSOF(int sofNumber) {
 
   if ( !afile.good() )
-    throw std::invalid_argument("Input file error !");
+    throw std::invalid_argument("Error: Input file error !");
 
   if ( sofNumber > SOF.size() ) {
-    throw std::invalid_argument("Invalid SOF number!");
+    throw std::invalid_argument("Error: Invalid SOF number!");
   }
 
-  uint8_t markerBuffer = 0;
+  char markerBuffer = 0;
 
-  afile >> markerBuffer;
-  SOF[sofNumber].Lf[0] = markerBuffer;
+  afile.read(&markerBuffer, 1);
+  SOF[sofNumber].Lf = ((unsigned char)markerBuffer) << 8;
 
-  afile >> markerBuffer;
-  SOF[sofNumber].Lf[1] = markerBuffer;
+  afile.read(&markerBuffer, 1);
+  SOF[sofNumber].Lf |= markerBuffer;
 
-  afile >> markerBuffer;
+  afile.read(&markerBuffer, 1);
   SOF[sofNumber].precision  = markerBuffer;
 
-  afile >> markerBuffer;
-  SOF[sofNumber].Y[0] = markerBuffer;
-  afile >> markerBuffer;
-  SOF[sofNumber].Y[1] = markerBuffer;
+  afile.read(&markerBuffer, 1);
+  SOF[sofNumber].Y = ((unsigned char)markerBuffer) << 8;
+  afile.read(&markerBuffer, 1);
+  SOF[sofNumber].Y |= (unsigned char)markerBuffer;
 
-  afile >> markerBuffer;
-  SOF[sofNumber].X[0] = markerBuffer;
+  afile.read(&markerBuffer, 1);
+  SOF[sofNumber].X = ((unsigned char)markerBuffer) << 8;
 
-  afile >> markerBuffer;
-  SOF[sofNumber].X[1] = markerBuffer;
+  afile.read(&markerBuffer, 1);
+  SOF[sofNumber].X |= (unsigned char)markerBuffer;
 
-  afile >> markerBuffer;
+  afile.read(&markerBuffer, 1);
   SOF[sofNumber].Nf  = markerBuffer;
 
   ReadFrameComponents();
@@ -122,133 +134,138 @@ bool JpegSections::ReadSOF(int sofNumber) {
 
 void JpegSections::ReadFrameComponents() {
   if ( !afile.good() )
-    throw std::invalid_argument("Input file error !");
+    throw std::invalid_argument("Error: Input file error !");
 
   if (SOF[jpegSOF].Nf > 3) {
-    throw std::invalid_argument("Too many image components in frame header !");
+    throw std::invalid_argument("Error: Too many image components in frame header !");
   }
 
-  SOF[jpegSOF].components.resize(SOF[jpegSOF].Nf);
+  SOF[jpegSOF].components.resize( SOF[jpegSOF].Nf );
 
-  uint8_t byteBuffer = 0;
+  char  byteBuffer = 0;
 
   for (int i = 0; i < SOF[jpegSOF].Nf; ++i) {
-    afile >> byteBuffer;
+    afile.read(&byteBuffer, 1);
     SOF[jpegSOF].components[i].C = byteBuffer;
 
-    afile >> byteBuffer;
-    SOF[jpegSOF].components[i].H = (byteBuffer & 0x0F);
-    SOF[jpegSOF].components[i].V = (byteBuffer >> 4) & 0x0F;
+    afile.read(&byteBuffer, 1);
+    SOF[jpegSOF].components[i].H = ((unsigned char)byteBuffer) & 0x0F;
+    SOF[jpegSOF].components[i].V = (((unsigned char)byteBuffer) >> 4) & 0x0F;
 
-    afile >> byteBuffer;
+    afile.read(&byteBuffer, 1);
     SOF[jpegSOF].components[i].Tq = byteBuffer;
 
     if (afile.eof()) {
-      break;
+      throw std::length_error("Error: Unsupported header foramt");
     }
   }
 }
 
 void JpegSections::ReadSOS() {
   if ( !afile.good() )
-    throw std::invalid_argument("Input file error !");
+    throw std::invalid_argument("Error: Input file error !");
 
-  uint8_t markerBuffer = 0;
+  char  markerBuffer = 0;
 
   afile.seekg(0);
 
   while ( !afile.eof() ) {
 
-    afile >> markerBuffer;
+    afile.read(&markerBuffer, 1);
 
-    if ( markerBuffer == SOS.marker[0] ) {
-      afile >> markerBuffer;
-      if ( markerBuffer == SOS.marker[1] ) {
+    if ( (unsigned char)markerBuffer == SOS.marker[0] ) {
 
-        afile >> markerBuffer;
-        SOS.Ls[0] = markerBuffer;
+      afile.read(&markerBuffer, 1);
 
-        afile >> markerBuffer;
-        SOS.Ls[1] = markerBuffer;
+      if ( (unsigned char)markerBuffer == SOS.marker[1] ) {
+        afile.read(&markerBuffer, 1);
+        SOS.Ls = ((unsigned char)markerBuffer) << 8;
 
-        afile >> markerBuffer;
+        afile.read(&markerBuffer, 1);
+        SOS.Ls|= (unsigned char)markerBuffer;
+
+        afile.read(&markerBuffer, 1);
         SOS.Ns = markerBuffer;
 
         SOS.scanComponents.resize(SOS.Ns);
 
         for (int i = 0; i < SOS.Ns; ++i) {
-          afile >> markerBuffer;
+          afile.read(&markerBuffer, 1);
           SOS.scanComponents[i].C  = markerBuffer;
 
-          afile >> markerBuffer;
-          SOS.scanComponents[i].Td  = markerBuffer & 0x0F;
-          SOS.scanComponents[i].Ta  = (markerBuffer >> 4) & 0x0F;
+          afile.read(&markerBuffer, 1);
+          SOS.scanComponents[i].Td  = ((unsigned char)markerBuffer) & 0x0F;
+          SOS.scanComponents[i].Ta  = ( ((unsigned char)markerBuffer) >> 4 ) & 0x0F;
         }
 
-        afile >> markerBuffer;
+        afile.read(&markerBuffer, 1);
         SOS.Ss = markerBuffer;
 
-        afile >> markerBuffer;
+        afile.read(&markerBuffer, 1);
         SOS.Se = markerBuffer;
 
-        afile >> markerBuffer;
-        SOS.Ah = markerBuffer & 0x0F;;
-        SOS.Al = (markerBuffer >> 4) & 0x0F;
+        afile.read(&markerBuffer, 1);
+        SOS.Ah = ((unsigned char)markerBuffer) & 0x0F;
+        SOS.Al = (((unsigned char)markerBuffer) >> 4) & 0x0F;
 
         offsetToData = afile.tellg();
         return;
       }
     }
   }
+
+  throw std::length_error("Error: Unsupported Start of Scan format");
 }
 
 void JpegSections::ReadDQT() {
   if ( !afile.good() )
-    throw std::invalid_argument("Input file error !");
+    throw std::invalid_argument("Error: Input file error !");
 
-  uint8_t markerBuffer = 0;
+  char  markerBuffer = 0;
 
   afile.seekg(0);
 
   uint16_t currentLength = 0;
 
   while ( !afile.eof() ) {
-    afile >> markerBuffer;
 
-    if ( markerBuffer == DQT.marker[0] ) {
-      afile >> markerBuffer;
-      if ( markerBuffer == DQT.marker[1] ) {
+    afile.read(&markerBuffer, 1);
 
-        afile >> markerBuffer;
-        DQT.Lq[0] = markerBuffer;
+    if ( (unsigned char)markerBuffer == DQT.marker[0] ) {
 
-        afile >> markerBuffer;
-        DQT.Lq[1] = markerBuffer;
+      afile.read(&markerBuffer, 1);
+
+      if ( (unsigned char)markerBuffer == DQT.marker[1] ) {
+
+        afile.read(&markerBuffer, 1);
+        DQT.Lq = ( ((unsigned char)markerBuffer) << 8 );
+
+        afile.read(&markerBuffer, 1);
+        DQT.Lq |= (unsigned char)markerBuffer;
 
         currentLength = 2;
 
         do {
-
           DQTTableElement table;
 
-          afile >> markerBuffer;
-          table.Pq  = markerBuffer & 0x0F;
-          table.Tq  = (markerBuffer >> 4) & 0x0F;
+          afile.read(&markerBuffer, 1);
+          table.Tq = ((unsigned char)markerBuffer) & 0x0F;
+          table.Pq = ((unsigned char)markerBuffer) >> 4 ;
           ++currentLength;
+
+          table.Q.Reset();
 
           int Qbuffer = 0;
           for (int i = 0; i < 64; ++i) {
-            uint8_t byteBuffer = 0;
-            afile >> byteBuffer;
-            //table.Q[i] = markerBuffer;
-            Qbuffer = byteBuffer;
+            afile.read(&markerBuffer, 1);
+
+            Qbuffer = markerBuffer;
             ++currentLength;
 
             if (table.Pq) {
-              Qbuffer = Qbuffer << 8;
-              afile >> byteBuffer;
-              //table.Q[i]|= markerBuffer << 8;
-              Qbuffer |= byteBuffer;
+              Qbuffer = ((unsigned char)Qbuffer) << 8;
+              afile.read(&markerBuffer, 1);
+              Qbuffer |= (unsigned char)markerBuffer;
               ++currentLength;
             }
 
@@ -256,48 +273,57 @@ void JpegSections::ReadDQT() {
           }
 
           DQT.tables.push_back(table);
-        } while ( (currentLength < ((DQT.Lq[0] << 8) | DQT.Lq[1])) && !afile.eof() );
+
+          if ( afile.eof() ) {
+            throw std::length_error("Error: Unsupported DQT format");
+          }
+        } while ( currentLength < DQT.Lq );
 
         return;
       }
     }
   }
+
+  throw std::length_error("Error: Unsupported DQT format");
 }
 
 void JpegSections::ReadDHT() {
   if ( !afile.good() )
-    throw std::invalid_argument("Input file error !");
+    throw std::invalid_argument("Error: Input file error !");
 
-  uint8_t markerBuffer = 0;
+  char  markerBuffer = 0;
 
   afile.seekg(0);
 
   uint16_t currentLength = 0;
 
   while ( !afile.eof() ) {
-    afile >> markerBuffer;
 
-    if ( markerBuffer == DHT.marker[0] ) {
-      afile >> markerBuffer;
-      if ( markerBuffer == DHT.marker[1] ) {
+    afile.read(&markerBuffer, 1);
 
-        afile >> markerBuffer;
-        DHT.Lh[0] = markerBuffer;
+    if ( (unsigned char)markerBuffer == (DHT.marker[0]) ) {
 
-        afile >> markerBuffer;
-        DHT.Lh[1] = markerBuffer;
+      afile.read(&markerBuffer, 1);
+
+      if ( (unsigned char)markerBuffer == (DHT.marker[1]) ) {
+
+        afile.read(&markerBuffer, 1);
+        DHT.Lh = ( ((unsigned char)markerBuffer) << 8 );
+
+        afile.read(&markerBuffer, 1);
+        DHT.Lh |= (unsigned char)markerBuffer;
 
         currentLength = 2;
 
         do {
           DHTTableElement table;
 
-          afile >> markerBuffer;
-          table.Tc  = markerBuffer & 0x0F;
-          table.Th  = (markerBuffer >> 4) & 0x0F;
+          afile.read(&markerBuffer, 1);
+          table.Th  = ((unsigned char)markerBuffer) & 0x0F;
+          table.Tc  = (((unsigned char)markerBuffer) >> 4) & 0x0F;
 
           for (int i = 0; i < 16; ++i) {
-            afile >> markerBuffer;
+            afile.read(&markerBuffer, 1);
             table.L[i] = markerBuffer;
           }
 
@@ -306,18 +332,25 @@ void JpegSections::ReadDHT() {
           for (int j = 0; j < 16; ++j) {
             currentLength+= table.L[j];
             for (int i = 0 ; i < table.L[j]; ++i) {
-              afile >> markerBuffer;
+              afile.read(&markerBuffer, 1);
               table.V[j].push_back(markerBuffer);
             }
           }
 
           DHT.tables.push_back(table);
-        } while ( (currentLength < ((DHT.Lh[0] << 8) | DHT.Lh[1])) && !afile.eof() );
+
+          if  ( afile.eof() ) {
+            throw std::length_error("Error: Unsupported DHT format");
+          }
+
+        } while ( currentLength < DHT.Lh );
 
         return;
       }
     }
   }
+
+  throw std::length_error("Error: Unsupported DHT format");
 }
 
 void JpegSections::GotoImage() {
@@ -327,9 +360,9 @@ void JpegSections::GotoImage() {
 }
 
 uint8_t  JpegSections::ReadByteFromImage() {
-  uint8_t buffer;
-  afile >> buffer;
-  return buffer;
+  char  buffer;
+  afile.read(&buffer, 1);
+  return (unsigned char)buffer;
 }
 
 int JpegSections::GetComponentsNumber() {
@@ -337,28 +370,71 @@ int JpegSections::GetComponentsNumber() {
 }
 
 int JpegSections::GetComponentH(int Cid) {
-  if ((Cid == 0) || (Cid > GetCurrentSof().Nf)) return 0;
-  return (GetCurrentSof().components[Cid-1].C == Cid) ? GetCurrentSof().components[Cid-1].H : 0;
+  if ((Cid == 0) || (Cid > GetCurrentSof().Nf))
+      throw std::invalid_argument("Error: Invalid coponent id");
+
+  if (GetCurrentSof().components[Cid-1].C == Cid) {
+    return GetCurrentSof().components[Cid-1].H;
+  }
+
+  throw std::invalid_argument("Error: Invalid coponent id");
 }
 
 int JpegSections::GetComponentV(int Cid) {
-  if ((Cid == 0) || (Cid > GetCurrentSof().Nf)) return 0;
-  return (GetCurrentSof().components[Cid-1].C == Cid) ? GetCurrentSof().components[Cid-1].V : 0;
+  if ((Cid == 0) || (Cid > GetCurrentSof().Nf))
+    throw std::invalid_argument("Error: Invalid coponent id");
+
+  if (GetCurrentSof().components[Cid-1].C == Cid) {
+    return GetCurrentSof().components[Cid-1].V;
+  }
+
+  throw std::invalid_argument("Error: Invalid coponent id");
 }
 
 int JpegSections::GetComponentTq(int Cid) {
-  if ((Cid == 0) || (Cid > GetCurrentSof().Nf)) return 0;
-  return (GetCurrentSof().components[Cid-1].C == Cid) ? GetCurrentSof().components[Cid-1].Tq : 0;
+  if ((Cid == 0) || (Cid > GetCurrentSof().Nf))
+    throw std::invalid_argument("Error: Invalid coponent id");
+
+  if (GetCurrentSof().components[Cid-1].C == Cid) {
+    return GetCurrentSof().components[Cid-1].Tq;
+  }
+
+  throw std::invalid_argument("Error: Invalid coponent id");
 }
 
 int JpegSections::GetComponentTd(int Cid) {
-  if ((Cid == 0) || (Cid > GetCurrentSof().Nf)) return 0;
-  return (SOS.scanComponents[Cid-1].C == Cid) ? SOS.scanComponents[Cid-1].Td : 0;
+  if ((Cid == 0) || (Cid > GetCurrentSof().Nf))
+    throw std::invalid_argument("Error: Invalid coponent id");
+
+  if (SOS.scanComponents[Cid-1].C == Cid) {
+    return SOS.scanComponents[Cid-1].Td;
+  }
+
+  throw std::invalid_argument("Error: Invalid coponent id");
 }
 
 int JpegSections::GetComponentTa(int Cid) {
-  if ((Cid == 0) || (Cid > GetCurrentSof().Nf)) return 0;
-  return (SOS.scanComponents[Cid-1].C == Cid) ? SOS.scanComponents[Cid-1].Ta : 0;
+  if ((Cid == 0) || (Cid > GetCurrentSof().Nf))
+    throw std::invalid_argument("Error: Invalid coponent id");
+
+  if (SOS.scanComponents[Cid-1].C == Cid) {
+    return SOS.scanComponents[Cid-1].Ta;
+  }
+
+  throw std::invalid_argument("Error: Invalid coponent id");
+}
+
+ZZMatrix<int, 8,8> & JpegSections::GetQTable(int Cid) {
+  int Tq = GetComponentTq(Cid);
+
+  for (std::list<DQTTableElement>::iterator it= DQT.tables.begin();
+        it != DQT.tables.end(); ++it) {
+    if (it->Tq == Tq) {
+      return it->Q;
+    }
+  }
+
+  throw std::invalid_argument("QTable not found");
 }
 
 int JpegSections::GetComponentHmax() {

@@ -12,9 +12,9 @@ class JpegDecoder {
     JpegDecoder(JpegSections& sections_);
     virtual ~JpegDecoder();
     void run();
-  protected:
 
-    struct HuffTableContext{;
+  protected:
+    struct HuffTableContext {
       std::vector<int> HUFFSIZE;
       std::vector<uint16_t> HUFFCODE;
       std::vector<uint16_t> HUFFVAL[16];

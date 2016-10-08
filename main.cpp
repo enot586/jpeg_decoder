@@ -16,10 +16,9 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-  Mat img = imread("lena.jpg", CV_LOAD_IMAGE_COLOR);
-  if(img.empty())
-     return -1;
-
+//  Mat img = imread("lena.jpg", CV_LOAD_IMAGE_COLOR);
+//  if(img.empty())
+//     return -1;
 
   try {
     string file("lena.jpg");
@@ -28,13 +27,13 @@ int main(int argc, char *argv[])
 
     jpegDecoder.run();
   } catch (std::exception& e) {
-
+    std::cout << "Error: unsupported JPEG format";
   }
 
-  namedWindow( "lena", CV_WINDOW_AUTOSIZE );
-  imshow("lena", img);
+//  namedWindow( "lena", CV_WINDOW_AUTOSIZE );
+//  imshow("lena", img);
 
-  waitKey(0);
+//  waitKey(0);
   return 0;
 }
 
