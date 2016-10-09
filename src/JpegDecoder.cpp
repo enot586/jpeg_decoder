@@ -271,7 +271,7 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
   }
 }
 
-void JpegDecoder::DecodeNextBlock(cv::Mat& result) {
+void JpegDecoder::DecodeNextBlock(cv::Mat& image) {
 
   ZZMatrix<int, 8, 8> currentBlock;
 
@@ -285,10 +285,18 @@ void JpegDecoder::DecodeNextBlock(cv::Mat& result) {
 
       DecodeBlock(i, currentBlock);
 
-      cv::Mat result;
-      currentBlock.ConvertTo(result);
+      cv::Mat currentResult;
+      currentBlock.ConvertTo_CV32FC1(currentResult);
 
-      std::cout << "Result = " << endl << " " << result << endl << endl;
+      //std::cout << "Result = " << endl << " " << currentResult << endl << endl;
+      cv::dct(currentResult, currentResult, cv::DCT_INVERSE);
+
+      //std::cout << "IDCT(Result) = " << endl << " " << currentResult << endl << endl;
+
+      //DCT shift
+      currentResult+= 128;
+
+      //std::cout << "+128 = " << endl << " " << currentResult << endl << endl;
     }
   }
 

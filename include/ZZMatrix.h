@@ -56,7 +56,7 @@ class ZZMatrix
     int GetCurrentY();
     int GetCurrentX();
 
-    void ConvertTo(cv::Mat& cvMatrix);
+    void ConvertTo_CV32FC1(cv::Mat& cvMatrix);
 
   protected:
     void GotoRight();
@@ -170,12 +170,12 @@ void ZZMatrix<T,M,N>::Print() {
 }
 
 template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::ConvertTo(cv::Mat& cvMatrix) {
-  cvMatrix.create(M, N, CV_16S);
+void ZZMatrix<T,M,N>::ConvertTo_CV32FC1(cv::Mat& cvMatrix) {
+  cvMatrix.create(M, N, CV_32FC1);
 
   for (int i = 0; i < M; ++i) {
     for (int j = 0; j < N; ++j) {
-      cvMatrix.at<T>(i,j) = m[i][j];
+      cvMatrix.at<float>(i,j) = m[i][j];
     }
   }
 
