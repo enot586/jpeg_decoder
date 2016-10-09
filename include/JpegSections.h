@@ -5,10 +5,7 @@
 #include <string>
 #include <list>
 #include <vector>
-
-#include "IZZContainer.h"
-#include "ZZAdapter.h"
-#include "ZZStdMat.h"
+#include "ZZMatrix.h"
 
 using namespace std;
 
@@ -26,7 +23,7 @@ class JpegSections
     int GetComponentTq(int Cid);
     int GetComponentTd(int Cid);
     int GetComponentTa(int Cid);
-    ZZStdMat<int, 8,8>& GetQTable(int Cid);
+    ZZMatrix<int, 8,8>& GetQTable(int Cid);
 
     int GetComponentHmax();
     int GetComponentVmax();
@@ -113,7 +110,7 @@ class JpegSections
       uint8_t  Pq;
       uint8_t  Tq;
       //uint16_t  Q[64];
-      ZZStdMat<int, 8,8> Q;
+      ZZMatrix<int, 8,8> Q;
     };
 
     struct  {

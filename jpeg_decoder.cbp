@@ -45,11 +45,9 @@
 			<Add directory="$(OPENCV_DIR)/lib" />
 			<Add directory="$(OPENCV_DIR)/bin" />
 		</Linker>
-		<Unit filename="include/IZZContainer.h" />
 		<Unit filename="include/JpegDecoder.h" />
 		<Unit filename="include/JpegSections.h" />
-		<Unit filename="include/ZZAdapter.h" />
-		<Unit filename="include/ZZStdMat.h" />
+		<Unit filename="include/ZZMatrix.h" />
 		<Unit filename="lena.jpg" />
 		<Unit filename="main.cpp" />
 		<Unit filename="src/JpegDecoder.cpp" />

@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include "JpegDecoder.h"
-#include "ZZAdapter.h"
+#include "ZZMatrix.h"
 
 using namespace cv;
 using namespace std;

@@ -225,11 +225,9 @@ int JpegDecoder::DecodeFromBitLength(int bitLength) {
   return Ampl;
 }
 
-template<typename T>
-void JpegDecoder::DecodeBlock(int Cid, IZZContainer<T>& block) {
+void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
 
-  ZZAdapter<T> zzAdapter(block);
-  ZZStdMat<T, 8, 8>& Q = sections.GetQTable(Cid);
+  ZZMatrix<int, 8, 8>& Q = sections.GetQTable(Cid);
 
   int DCAmpl = DCDecode(Cid);
 
@@ -237,10 +235,10 @@ void JpegDecoder::DecodeBlock(int Cid, IZZContainer<T>& block) {
   dcDiff.at(Cid-1)+= DCAmpl;
 
   //Dequantization
-  dcDiff.at(Cid-1) = dcDiff.at(Cid-1) * Q.Get( zzAdapter.GetCurrentY(),
-                                               zzAdapter.GetCurrentX() );
+  dcDiff.at(Cid-1) = dcDiff.at(Cid-1) * Q.Get( block.GetCurrentY(),
+                                               block.GetCurrentX() );
 
-  zzAdapter.Push( dcDiff.at(Cid-1) );
+  block.Push( dcDiff.at(Cid-1) );
 
   int Ta = sections.GetComponentTa(Cid);
   int huffTableId = (sections.HUFFMAN_TABLE_AC << 4) | Ta;
@@ -261,10 +259,10 @@ void JpegDecoder::DecodeBlock(int Cid, IZZContainer<T>& block) {
       k+= RRRR;
 
       int ACAmpl = DecodeFromBitLength(SSSS);
-      ACAmpl = ACAmpl * Q.Get( zzAdapter.GetCurrentY(),
-                               zzAdapter.GetCurrentX() );
+      ACAmpl = ACAmpl * Q.Get( block.GetCurrentY(),
+                               block.GetCurrentX() );
 
-      zzAdapter.Push( ACAmpl );
+      block.Push( ACAmpl );
     } else if (RRRR == 15) {
       k+= 16;
     } else {
@@ -273,13 +271,15 @@ void JpegDecoder::DecodeBlock(int Cid, IZZContainer<T>& block) {
   }
 }
 
-template<typename T>
-void JpegDecoder::DecodeNextBlock(IZZContainer<T>& block) {
+void JpegDecoder::DecodeNextBlock(ZZMatrix<int, 8, 8>& block) {
 
-  ZZStdMat<T, 8, 8> currentBlock;
+  ZZMatrix<int, 8, 8> currentBlock;
 
   for (int i = 1; i <= sections.GetComponentsNumber(); ++i) {
     int totalAmountCiComponents = sections.GetComponentH(i) * sections.GetComponentV(i);
+
+    currentBlock.Reset();
+    currentBlock.Init(0);
 
     for (int j = 1; j <= totalAmountCiComponents; ++j) {
       DecodeBlock(i, currentBlock);
@@ -291,7 +291,7 @@ void JpegDecoder::DecodeNextBlock(IZZContainer<T>& block) {
 }
 
 void JpegDecoder::run() {
-  ZZStdMat<int, 8, 8> block;
+  ZZMatrix<int, 8, 8> block;
   DecodeNextBlock(block);
 
 }
