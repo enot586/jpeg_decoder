@@ -17,6 +17,9 @@ class JpegSections
 
     uint8_t  ReadByteFromImage();
 
+    int GetImageSizeX();
+    int GetImageSizeY();
+
     int GetComponentsNumber();
     int GetComponentH(int Cid);
     int GetComponentV(int Cid);

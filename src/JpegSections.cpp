@@ -457,3 +457,11 @@ int JpegSections::GetComponentVmax() {
   return Vmax;
 }
 
+int JpegSections::GetImageSizeX() {
+  return GetCurrentSof().X;
+};
+
+int JpegSections::GetImageSizeY() {
+  return GetCurrentSof().Y;
+}
+

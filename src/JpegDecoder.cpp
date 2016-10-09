@@ -271,7 +271,7 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
   }
 }
 
-void JpegDecoder::DecodeNextBlock(ZZMatrix<int, 8, 8>& block) {
+void JpegDecoder::DecodeNextBlock(cv::Mat& result) {
 
   ZZMatrix<int, 8, 8> currentBlock;
 
@@ -282,16 +282,22 @@ void JpegDecoder::DecodeNextBlock(ZZMatrix<int, 8, 8>& block) {
     currentBlock.Init(0);
 
     for (int j = 1; j <= totalAmountCiComponents; ++j) {
+
       DecodeBlock(i, currentBlock);
-      currentBlock.Print();
-      std::cout << endl;
+
+      cv::Mat result;
+      currentBlock.ConvertTo(result);
+
+      std::cout << "Result = " << endl << " " << result << endl << endl;
     }
   }
 
 }
 
 void JpegDecoder::run() {
-  ZZMatrix<int, 8, 8> block;
-  DecodeNextBlock(block);
+  cv::Mat image(sections.GetImageSizeY(),
+                sections.GetImageSizeX(), CV_8U);
+
+  DecodeNextBlock(image);
 
 }

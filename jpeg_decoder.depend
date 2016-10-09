@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1475936253 source:d:\projects\jpeg_decoder\main.cpp
+1476025701 source:d:\projects\jpeg_decoder\main.cpp
 	<opencv2/core/core.hpp>
 	<opencv2/imgproc/imgproc.hpp>
 	<opencv2/highgui/highgui.hpp>
@@ -291,16 +291,16 @@
 1449835037 d:\opencv\build\include\opencv2\imgcodecs\imgcodecs.hpp
 	"opencv2/imgcodecs.hpp"
 
-1475943948 d:\projects\jpeg_decoder\include\jpegdecoder.h
+1476025925 d:\projects\jpeg_decoder\include\jpegdecoder.h
 	"JpegSections.h"
 	<map>
 
-1475948279 source:d:\projects\jpeg_decoder\src\jpegdecoder.cpp
+1476027952 source:d:\projects\jpeg_decoder\src\jpegdecoder.cpp
 	"JpegDecoder.h"
 	<iostream>
 	<algorithm>
 
-1475938347 d:\projects\jpeg_decoder\include\jpegsections.h
+1476027447 d:\projects\jpeg_decoder\include\jpegsections.h
 	<fstream>
 	<memory>
 	<string>
@@ -308,7 +308,7 @@
 	<vector>
 	"ZZMatrix.h"
 
-1475942843 source:d:\projects\jpeg_decoder\src\jpegsections.cpp
+1476027447 source:d:\projects\jpeg_decoder\src\jpegsections.cpp
 	"JpegSections.h"
 	<stdexcept>
 	<exception>
@@ -322,6 +322,7 @@
 
 1475173201 d:\projects\jpeg_decoder\include\zigzagmatrix.h
 
-1475945443 d:\projects\jpeg_decoder\include\zzmatrix.h
+1476027271 d:\projects\jpeg_decoder\include\zzmatrix.h
+	<opencv2/core/core.hpp>
 	<iostream>
 

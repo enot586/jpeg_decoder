@@ -1,6 +1,7 @@
 #ifndef ZIGZAGMATRIX_H
 #define ZIGZAGMATRIX_H
 
+#include <opencv2/core/core.hpp>
 #include <iostream>
 
 template<typename T, int M, int N>
@@ -54,6 +55,8 @@ class ZZMatrix
 
     int GetCurrentY();
     int GetCurrentX();
+
+    void ConvertTo(cv::Mat& cvMatrix);
 
   protected:
     void GotoRight();
@@ -166,6 +169,17 @@ void ZZMatrix<T,M,N>::Print() {
 
 }
 
+template<typename T, int M, int N>
+void ZZMatrix<T,M,N>::ConvertTo(cv::Mat& cvMatrix) {
+  cvMatrix.create(M, N, CV_16S);
+
+  for (int i = 0; i < M; ++i) {
+    for (int j = 0; j < N; ++j) {
+      cvMatrix.at<T>(i,j) = m[i][j];
+    }
+  }
+
+}
 
 
 #endif // ZIGZAGMATRIX_H

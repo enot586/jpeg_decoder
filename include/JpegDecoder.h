@@ -32,7 +32,7 @@ class JpegDecoder {
     uint8_t Decode(const std::vector<uint16_t>& MINCODE, const std::vector<uint16_t>& MAXCODE,
                    const std::vector<uint16_t> HUFFVAL[]);
 
-    void DecodeNextBlock(ZZMatrix<int, 8, 8>& block);
+    void DecodeNextBlock(cv::Mat& result);
     void DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block);
     int16_t EXTEND(int V, int T);
     uint8_t ReadNextBit();
