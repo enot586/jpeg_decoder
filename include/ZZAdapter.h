@@ -2,33 +2,23 @@
 #define ZIGZAGMATRIX_H
 
 #include <iostream>
+#include "IZZContainer.h"
 
-template<typename T, int M, int N>
-class ZZMatrix
+template<typename T>
+class ZZAdapter
 {
   private:
-    const int sizeX = N;
-    const int sizeY = M;
-
-    T m[M][N];
-
     int x = 0;
     int y = 0;
 
     bool lastActionIsStep = false;
     bool direction = true;
 
-  public:
-    ZZMatrix();
-    ~ZZMatrix();
+    IZZContainer<T>& container;
 
-    void Init(T init) {
-      for (int i = 0; i<sizeY; ++i) {
-        for (int j = 0; j<sizeX; ++j) {
-          m[i][j] = init;
-        }
-      }
-    }
+  public:
+    ZZAdapter(IZZContainer<T>& container_);
+    ~ZZAdapter();
 
     void Print();
 
@@ -37,20 +27,17 @@ class ZZMatrix
       y = 0;
       lastActionIsStep = false;
       direction = true;
+      container.Init();
     }
 
     void Push(T el);
-
-    T Get(int y, int x) {
-      return m[y][x];
-    }
 
     void NextStep();
 
     bool IsTopBorderAchiev()    { return (y == 0); };
     bool IsLeftBorderAchive()   { return (x == 0); };
-    bool IsRightBorderAchive()  { return (x == sizeX - 1); };
-    bool IsBottomBorderAchive() { return (y == sizeY - 1); };
+    bool IsRightBorderAchive()  { return (x == container.GetSizeX() - 1); };
+    bool IsBottomBorderAchive() { return (y == container.GetSizeY() - 1); };
 
     int GetCurrentY();
     int GetCurrentX();
@@ -62,50 +49,50 @@ class ZZMatrix
     void GotoDownDiagonal();
 };
 
-template<typename T, int M, int N>
-ZZMatrix<T,M,N>::ZZMatrix() {
+template<typename T>
+ZZAdapter<T>::ZZAdapter(IZZContainer<T>& container_) : container(container_) {
   direction = true;
   Reset();
 }
 
-template<typename T, int M, int N>
-ZZMatrix<T,M,N>::~ZZMatrix()
+template<typename T>
+ZZAdapter<T>::~ZZAdapter()
 {
   //dtor
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::GotoRight() {
-  if ( x < sizeX-1 ) {
+template<typename T>
+void ZZAdapter<T>::GotoRight() {
+  if ( x < container.GetSizeX()-1 ) {
     ++x;
   }
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::GotoDown() {
-  if ( y < sizeY-1 ) {
+template<typename T>
+void ZZAdapter<T>::GotoDown() {
+  if ( y < container.GetSizeY()-1 ) {
     ++y;
   }
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::GotoUpDiagonal() {
-  if ( (y > 0) && (x < sizeX-1) ) {
+template<typename T>
+void ZZAdapter<T>::GotoUpDiagonal() {
+  if ( (y > 0) && (x < container.GetSizeX()-1) ) {
     --y;
     ++x;
   }
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::GotoDownDiagonal() {
-  if ( (y < sizeY-1) && (x > 0) ) {
+template<typename T>
+void ZZAdapter<T>::GotoDownDiagonal() {
+  if ( (y < container.GetSizeY()-1) && (x > 0) ) {
     ++y;
     --x;
   }
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::NextStep() {
+template<typename T>
+void ZZAdapter<T>::NextStep() {
   if (IsTopBorderAchiev() && IsLeftBorderAchive()) {
     GotoRight();
     direction = false;
@@ -126,9 +113,10 @@ void ZZMatrix<T,M,N>::NextStep() {
   }
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::Push(T el) {
-  m[y][x] = el;
+template<typename T>
+void ZZAdapter<T>::Push(T el) {
+
+  container.Set(y, x, el);
 
   if ( (IsTopBorderAchiev() || IsLeftBorderAchive() ||
         IsRightBorderAchive() || IsBottomBorderAchive()) && !lastActionIsStep ) {
@@ -144,28 +132,15 @@ void ZZMatrix<T,M,N>::Push(T el) {
   }
 }
 
-template<typename T, int M, int N>
-int ZZMatrix<T,M,N>::GetCurrentX() {
+template<typename T>
+int ZZAdapter<T>::GetCurrentX() {
   return x;
 }
 
-template<typename T, int M, int N>
-int ZZMatrix<T,M,N>::GetCurrentY() {
+template<typename T>
+int ZZAdapter<T>::GetCurrentY() {
   return y;
 }
-
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::Print() {
-
-  for (int i = 0; i < M; ++i) {
-    for (int j = 0; j < N; ++j) {
-      std::cout << std::dec << static_cast<int16_t>(m[i][j]) << "\t";
-    }
-    std::cout << std::endl;
-  }
-
-}
-
 
 
 #endif // ZIGZAGMATRIX_H

@@ -133,6 +133,7 @@ bool JpegSections::ReadSOF(int sofNumber) {
 }
 
 void JpegSections::ReadFrameComponents() {
+
   if ( !afile.good() )
     throw std::invalid_argument("Error: Input file error !");
 
@@ -162,6 +163,7 @@ void JpegSections::ReadFrameComponents() {
 }
 
 void JpegSections::ReadSOS() {
+
   if ( !afile.good() )
     throw std::invalid_argument("Error: Input file error !");
 
@@ -218,6 +220,7 @@ void JpegSections::ReadSOS() {
 }
 
 void JpegSections::ReadDQT() {
+
   if ( !afile.good() )
     throw std::invalid_argument("Error: Input file error !");
 
@@ -424,7 +427,7 @@ int JpegSections::GetComponentTa(int Cid) {
   throw std::invalid_argument("Error: Invalid coponent id");
 }
 
-ZZMatrix<int, 8,8> & JpegSections::GetQTable(int Cid) {
+ZZStdMat<int, 8,8> & JpegSections::GetQTable(int Cid) {
   int Tq = GetComponentTq(Cid);
 
   for (std::list<DQTTableElement>::iterator it= DQT.tables.begin();
