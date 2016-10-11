@@ -2,6 +2,10 @@
 #include <iostream>
 #include <algorithm>
 
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgcodecs/imgcodecs.hpp>
+
 
 
 JpegDecoder::JpegDecoder(JpegSections& sections_) : sections(sections_) {
@@ -225,9 +229,9 @@ int JpegDecoder::DecodeFromBitLength(int bitLength) {
   return Ampl;
 }
 
-void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
+void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int>& block) {
 
-  ZZMatrix<int, 8, 8>& Q = sections.GetQTable(Cid);
+  ZZMatrix<int>& Q = sections.GetQTable(Cid);
 
   int DCAmpl = DCDecode(Cid);
 
@@ -271,41 +275,52 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int, 8, 8>& block) {
   }
 }
 
-void JpegDecoder::DecodeNextBlock(cv::Mat& image) {
+void JpegDecoder::DecodeNextBlock(cv::Mat& result) {
 
-  ZZMatrix<int, 8, 8> currentBlock;
+  ZZMatrix<int> currentBlock(8,8);
+  cv::Mat decodingResult;
 
   for (int i = 1; i <= sections.GetComponentsNumber(); ++i) {
     int totalAmountCiComponents = sections.GetComponentH(i) * sections.GetComponentV(i);
 
     currentBlock.Reset();
-    currentBlock.Init(0);
+    int initVal = 0;
+    currentBlock.Init(initVal);
 
     for (int j = 1; j <= totalAmountCiComponents; ++j) {
-
       DecodeBlock(i, currentBlock);
 
-      cv::Mat currentResult;
-      currentBlock.ConvertTo_CV32FC1(currentResult);
+      currentBlock.ConvertTo_CV32FC1(decodingResult);
 
       //std::cout << "Result = " << endl << " " << currentResult << endl << endl;
-      cv::dct(currentResult, currentResult, cv::DCT_INVERSE);
-
-      //std::cout << "IDCT(Result) = " << endl << " " << currentResult << endl << endl;
+      cv::dct(decodingResult, decodingResult, cv::DCT_INVERSE);
 
       //DCT shift
-      currentResult+= 128;
-
-      //std::cout << "+128 = " << endl << " " << currentResult << endl << endl;
+      decodingResult+= 128;
+      decodingResult.convertTo(result, CV_8U);
     }
   }
 
 }
 
 void JpegDecoder::run() {
-  cv::Mat image(sections.GetImageSizeY(),
-                sections.GetImageSizeX(), CV_8U);
+  cv::Mat resultImage;
+  cv::Mat block;
 
-  DecodeNextBlock(image);
+  int height = sections.GetImageSizeY() / 8;
+  int width = sections.GetImageSizeX() / 8;
+
+  if (sections.GetImageSizeY() % 8)
+    ++height;
+
+  if (sections.GetImageSizeX() % 8)
+    ++width;
+
+  ZZMatrix<cv::Mat> im(height, width);
+
+
+  DecodeNextBlock(block);
+  im.Push(block);
+  std::cout << block;
 
 }

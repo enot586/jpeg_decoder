@@ -26,7 +26,7 @@ class JpegSections
     int GetComponentTq(int Cid);
     int GetComponentTd(int Cid);
     int GetComponentTa(int Cid);
-    ZZMatrix<int, 8,8>& GetQTable(int Cid);
+    ZZMatrix<int>& GetQTable(int Cid);
 
     int GetComponentHmax();
     int GetComponentVmax();
@@ -113,7 +113,10 @@ class JpegSections
       uint8_t  Pq;
       uint8_t  Tq;
       //uint16_t  Q[64];
-      ZZMatrix<int, 8,8> Q;
+      ZZMatrix<int> Q;
+
+      DQTTableElement() : Q(8,8) {
+      }
     };
 
     struct  {

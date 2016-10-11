@@ -424,7 +424,7 @@ int JpegSections::GetComponentTa(int Cid) {
   throw std::invalid_argument("Error: Invalid coponent id");
 }
 
-ZZMatrix<int, 8,8> & JpegSections::GetQTable(int Cid) {
+ZZMatrix<int> & JpegSections::GetQTable(int Cid) {
   int Tq = GetComponentTq(Cid);
 
   for (std::list<DQTTableElement>::iterator it= DQT.tables.begin();

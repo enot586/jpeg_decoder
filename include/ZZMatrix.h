@@ -4,14 +4,14 @@
 #include <opencv2/core/core.hpp>
 #include <iostream>
 
-template<typename T, int M, int N>
+template<typename T>
 class ZZMatrix
 {
   private:
-    const int sizeX = N;
-    const int sizeY = M;
+    const int sizeX;
+    const int sizeY;
 
-    T m[M][N];
+    std::vector< std::vector<T> > m;
 
     int x = 0;
     int y = 0;
@@ -20,13 +20,13 @@ class ZZMatrix
     bool direction = true;
 
   public:
-    ZZMatrix();
+    ZZMatrix(int M, int N);
     ~ZZMatrix();
 
-    void Init(T init) {
+    void Init(const T& init) {
       for (int i = 0; i<sizeY; ++i) {
         for (int j = 0; j<sizeX; ++j) {
-          m[i][j] = init;
+          m.at(i).at(j) = init;
         }
       }
     }
@@ -43,7 +43,7 @@ class ZZMatrix
     void Push(T el);
 
     T Get(int y, int x) {
-      return m[y][x];
+      return m.at(y).at(x);
     }
 
     void NextStep();
@@ -65,50 +65,56 @@ class ZZMatrix
     void GotoDownDiagonal();
 };
 
-template<typename T, int M, int N>
-ZZMatrix<T,M,N>::ZZMatrix() {
+template<typename T>
+ZZMatrix<T>::ZZMatrix(int M, int N): sizeY(M),sizeX(N) {
+
+  m.resize(sizeY);
+  for (int i = 0; i < sizeY; ++i) {
+    m[i].resize(sizeX);
+  }
+
   direction = true;
   Reset();
 }
 
-template<typename T, int M, int N>
-ZZMatrix<T,M,N>::~ZZMatrix()
+template<typename T>
+ZZMatrix<T>::~ZZMatrix()
 {
   //dtor
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::GotoRight() {
+template<typename T>
+void ZZMatrix<T>::GotoRight() {
   if ( x < sizeX-1 ) {
     ++x;
   }
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::GotoDown() {
+template<typename T>
+void ZZMatrix<T>::GotoDown() {
   if ( y < sizeY-1 ) {
     ++y;
   }
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::GotoUpDiagonal() {
+template<typename T>
+void ZZMatrix<T>::GotoUpDiagonal() {
   if ( (y > 0) && (x < sizeX-1) ) {
     --y;
     ++x;
   }
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::GotoDownDiagonal() {
+template<typename T>
+void ZZMatrix<T>::GotoDownDiagonal() {
   if ( (y < sizeY-1) && (x > 0) ) {
     ++y;
     --x;
   }
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::NextStep() {
+template<typename T>
+void ZZMatrix<T>::NextStep() {
   if (IsTopBorderAchiev() && IsLeftBorderAchive()) {
     GotoRight();
     direction = false;
@@ -129,8 +135,8 @@ void ZZMatrix<T,M,N>::NextStep() {
   }
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::Push(T el) {
+template<typename T>
+void ZZMatrix<T>::Push(T el) {
   m[y][x] = el;
 
   if ( (IsTopBorderAchiev() || IsLeftBorderAchive() ||
@@ -147,21 +153,21 @@ void ZZMatrix<T,M,N>::Push(T el) {
   }
 }
 
-template<typename T, int M, int N>
-int ZZMatrix<T,M,N>::GetCurrentX() {
+template<typename T>
+int ZZMatrix<T>::GetCurrentX() {
   return x;
 }
 
-template<typename T, int M, int N>
-int ZZMatrix<T,M,N>::GetCurrentY() {
+template<typename T>
+int ZZMatrix<T>::GetCurrentY() {
   return y;
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::Print() {
+template<typename T>
+void ZZMatrix<T>::Print() {
 
-  for (int i = 0; i < M; ++i) {
-    for (int j = 0; j < N; ++j) {
+  for (int i = 0; i < sizeY; ++i) {
+    for (int j = 0; j < sizeX; ++j) {
       std::cout << std::dec << static_cast<int16_t>(m[i][j]) << "\t";
     }
     std::cout << std::endl;
@@ -169,12 +175,12 @@ void ZZMatrix<T,M,N>::Print() {
 
 }
 
-template<typename T, int M, int N>
-void ZZMatrix<T,M,N>::ConvertTo_CV32FC1(cv::Mat& cvMatrix) {
-  cvMatrix.create(M, N, CV_32FC1);
+template<typename T>
+void ZZMatrix<T>::ConvertTo_CV32FC1(cv::Mat& cvMatrix) {
+  cvMatrix.create(sizeY, sizeX, CV_32FC1);
 
-  for (int i = 0; i < M; ++i) {
-    for (int j = 0; j < N; ++j) {
+  for (int i = 0; i < sizeY; ++i) {
+    for (int j = 0; j < sizeX; ++j) {
       cvMatrix.at<float>(i,j) = m[i][j];
     }
   }
