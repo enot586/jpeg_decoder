@@ -192,7 +192,7 @@ uint8_t JpegDecoder::Decode(const std::vector<uint16_t>& MINCODE,
 }
 
 int16_t JpegDecoder::EXTEND(int V, int T) {
-  int16_t Vt = 2 << (T-1);
+  int16_t Vt = 1 << (T-1);
 
   if (V < Vt) {
     Vt = ((uint16_t)(-1) << T) + 1;
@@ -211,7 +211,11 @@ int JpegDecoder::DCDecode(int Cid) {
   uint8_t DCValBitLength = Decode(huffDecodeTableSet.MINCODE, huffDecodeTableSet.MAXCODE,
                                   huffDecodeTableSet.HUFFVAL);
 
-  return DecodeFromBitLength(DCValBitLength);
+  if (DCValBitLength) {
+    return DecodeFromBitLength(DCValBitLength);
+  } else {
+    return 0;
+  }
 }
 
 int JpegDecoder::DecodeFromBitLength(int bitLength) {
@@ -231,18 +235,23 @@ int JpegDecoder::DecodeFromBitLength(int bitLength) {
 
 void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int>& block) {
 
+  block.Reset();
+  int iniVal = 0;
+  block.Init(iniVal);
+
   ZZMatrix<int>& Q = sections.GetQTable(Cid);
 
   int DCAmpl = DCDecode(Cid);
 
   //Decode DPCM for DC coefficients
-  dcDiff.at(Cid-1)+= DCAmpl;
+  if (DCAmpl) {
+    dcDiff.at(Cid-1)+= DCAmpl;
+  }
 
   //Dequantization
-  dcDiff.at(Cid-1) = dcDiff.at(Cid-1) * Q.Get( block.GetCurrentY(),
-                                               block.GetCurrentX() );
+  int dequantDc = dcDiff.at(Cid-1) * Q.Get( 0, 0 );
 
-  block.Push( dcDiff.at(Cid-1) );
+  block.Push( dequantDc );
 
   int Ta = sections.GetComponentTa(Cid);
   int huffTableId = (sections.HUFFMAN_TABLE_AC << 4) | Ta;
@@ -252,7 +261,8 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int>& block) {
   uint8_t code = 0;
 
   // Number of AC elements == 63
-  for (int k = 0; k < 62; ++k) {
+  int k = 1;
+  do {
     code = Decode(huffDecodeTableSet.MINCODE, huffDecodeTableSet.MAXCODE,
                   huffDecodeTableSet.HUFFVAL);
 
@@ -260,6 +270,9 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int>& block) {
     int RRRR = code >> 4;
 
     if (SSSS) {
+      for (int g = 0; g < RRRR; ++g) {
+        block.Push( 0 );
+      }
       k+= RRRR;
 
       int ACAmpl = DecodeFromBitLength(SSSS);
@@ -267,44 +280,86 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int>& block) {
                                block.GetCurrentX() );
 
       block.Push( ACAmpl );
+
+      ++k;
     } else if (RRRR == 15) {
+
+      for (int g = 0; g < 16; ++g) {
+        block.Push( 0 );
+      }
+
       k+= 16;
     } else {
+      //EOB?
       break;
     }
-  }
+  } while ( k <= 63 );
 }
 
-void JpegDecoder::DecodeNextBlock(cv::Mat& result) {
+int JpegDecoder::DecodeNextBlock(cv::Mat& result) {
 
   ZZMatrix<int> currentBlock(8,8);
   cv::Mat decodingResult;
 
-  for (int i = 1; i <= sections.GetComponentsNumber(); ++i) {
-    int totalAmountCiComponents = sections.GetComponentH(i) * sections.GetComponentV(i);
-
-    currentBlock.Reset();
-    int initVal = 0;
-    currentBlock.Init(initVal);
-
-    for (int j = 1; j <= totalAmountCiComponents; ++j) {
-      DecodeBlock(i, currentBlock);
-
-      currentBlock.ConvertTo_CV32FC1(decodingResult);
-
-      //std::cout << "Result = " << endl << " " << currentResult << endl << endl;
-      cv::dct(decodingResult, decodingResult, cv::DCT_INVERSE);
-
-      //DCT shift
-      decodingResult+= 128;
-      decodingResult.convertTo(result, CV_8U);
-    }
+  if (!currentCid) {
+    currentCid = 1;
+    currentCidCounter = 0;
   }
 
+  int totalAmountCiComponents = sections.GetComponentH(currentCid) * sections.GetComponentV(currentCid);
+
+  if (currentCidCounter < totalAmountCiComponents) {
+    ++currentCidCounter;
+  } else {
+    if ( currentCid < sections.GetComponentsNumber() ) {
+      ++currentCid;
+    } else {
+      currentCid = 1;
+    }
+    currentCidCounter = 1;
+  }
+
+  DecodeBlock(currentCid, currentBlock);
+
+  currentBlock.ConvertTo_CV32FC1(decodingResult);
+
+  //std::cout << "C[" << currentCid << "] = " << endl << " " << decodingResult << endl << endl;
+  cv::dct(decodingResult, decodingResult, cv::DCT_INVERSE);
+
+  //DCT shift
+  decodingResult+= 128;
+  decodingResult.convertTo(result, CV_8U);
+
+  return currentCid;
+
+}
+
+void JpegDecoder::MergeMat(ZZMatrix<cv::Mat>& zz, cv::Mat& result) {
+  cv::Mat resultRow;
+
+  cv::Mat zr = zz.Get(0,0);
+  zr.copyTo(result);
+  for (int x = 1; x < zz.Columns(); ++x) {
+    hconcat(result, zz.Get(0,x), result);
+  }
+
+  for (int y = 1; y < zz.Rows(); ++y) {
+    zr = zz.Get(y,0);
+    zr.copyTo(resultRow);
+
+    for (int x = 1; x < zz.Columns(); ++x) {
+      hconcat(resultRow, zz.Get(y,x), resultRow);
+    }
+
+    vconcat(result, resultRow, result);
+    resultRow.release();
+  }
 }
 
 void JpegDecoder::run() {
   cv::Mat resultImage;
+  cv::Mat resultRow;
+  cv::Mat resultRowRow;
   cv::Mat block;
 
   int height = sections.GetImageSizeY() / 8;
@@ -316,11 +371,51 @@ void JpegDecoder::run() {
   if (sections.GetImageSizeX() % 8)
     ++width;
 
-  ZZMatrix<cv::Mat> im(height, width);
+  int sizeComponent[3];
+  ZZMatrix<cv::Mat>* components[3];
+
+  for (int i = 0; i < sections.GetComponentsNumber(); ++i) {
+    int comH = sections.GetComponentH(i+1);
+    int comV = sections.GetComponentV(i+1);
+    sizeComponent[i] = comH*comV;
+    components[i] = new ZZMatrix<cv::Mat>(comV, comH);
+  }
+
+  for (int w = 0; w < height; ++w) {
+    for (int g = 0; g < width/2; ++g) {
+      for (int i = 0; i < sections.GetComponentsNumber(); ++i) {
+        for (int j = 0; j < sizeComponent[i]; ++j) {
+          DecodeNextBlock(block);
+          //std::cout << "C[" << i << "]=" << endl << block << endl << endl;
+          components[i]->Push(block);
+        }
+
+        components[1]->Reset();
+        components[2]->Reset();
+
+        MergeMat(*components[0], resultRow);
+      }
+      if (resultImage.empty()) {
+        resultRow.copyTo(resultImage);
+      } else {
+        cv::hconcat(resultImage, resultRow, resultImage);
+      }
+
+      resultRow.release();
+    }
+    if (resultRowRow.empty()) {
+      resultImage.copyTo(resultRowRow);
+    } else {
+      cv::vconcat(resultRowRow, resultImage, resultRowRow);
+    }
+
+    resultImage.release();
+  }
 
 
-  DecodeNextBlock(block);
-  im.Push(block);
-  std::cout << block;
+  cv::namedWindow( "lena", CV_WINDOW_AUTOSIZE );
+  cv::imshow("lena", resultRowRow);
+
+  cv::waitKey(0);
 
 }

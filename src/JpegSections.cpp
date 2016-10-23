@@ -149,8 +149,8 @@ void JpegSections::ReadFrameComponents() {
     SOF[jpegSOF].components[i].C = byteBuffer;
 
     afile.read(&byteBuffer, 1);
-    SOF[jpegSOF].components[i].H = ((unsigned char)byteBuffer) & 0x0F;
-    SOF[jpegSOF].components[i].V = (((unsigned char)byteBuffer) >> 4) & 0x0F;
+    SOF[jpegSOF].components[i].V = ((unsigned char)byteBuffer) & 0x0F;
+    SOF[jpegSOF].components[i].H = (((unsigned char)byteBuffer) >> 4) & 0x0F;
 
     afile.read(&byteBuffer, 1);
     SOF[jpegSOF].components[i].Tq = byteBuffer;
@@ -194,8 +194,8 @@ void JpegSections::ReadSOS() {
           SOS.scanComponents[i].C  = markerBuffer;
 
           afile.read(&markerBuffer, 1);
-          SOS.scanComponents[i].Td  = ((unsigned char)markerBuffer) & 0x0F;
-          SOS.scanComponents[i].Ta  = ( ((unsigned char)markerBuffer) >> 4 ) & 0x0F;
+          SOS.scanComponents[i].Ta  = ((unsigned char)markerBuffer) & 0x0F;
+          SOS.scanComponents[i].Td  = ( ((unsigned char)markerBuffer) >> 4 ) & 0x0F;
         }
 
         afile.read(&markerBuffer, 1);
@@ -205,8 +205,8 @@ void JpegSections::ReadSOS() {
         SOS.Se = markerBuffer;
 
         afile.read(&markerBuffer, 1);
-        SOS.Ah = ((unsigned char)markerBuffer) & 0x0F;
-        SOS.Al = (((unsigned char)markerBuffer) >> 4) & 0x0F;
+        SOS.Al = ((unsigned char)markerBuffer) & 0x0F;
+        SOS.Ah = (((unsigned char)markerBuffer) >> 4) & 0x0F;
 
         offsetToData = afile.tellg();
         return;
@@ -320,7 +320,7 @@ void JpegSections::ReadDHT() {
 
           afile.read(&markerBuffer, 1);
           table.Th  = ((unsigned char)markerBuffer) & 0x0F;
-          table.Tc  = (((unsigned char)markerBuffer) >> 4) & 0x0F;
+          table.Tc  = (unsigned char)markerBuffer >> 4;
 
           for (int i = 0; i < 16; ++i) {
             afile.read(&markerBuffer, 1);

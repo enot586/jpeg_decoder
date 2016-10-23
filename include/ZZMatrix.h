@@ -31,6 +31,9 @@ class ZZMatrix
       }
     }
 
+    int Columns() { return sizeX; };
+    int Rows()    { return sizeY; };
+
     void Print();
 
     void Reset() {
