@@ -132,7 +132,7 @@ class JpegSections
     struct DHTTableElement {
       uint8_t  Tc;
       uint8_t  Th;
-      uint8_t  L[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+      uint8_t  L[17] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
       std::vector<uint8_t> V[16];
     };
 

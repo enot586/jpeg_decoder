@@ -16,21 +16,21 @@ class JpegDecoder {
   protected:
     struct HuffTableContext {
       std::vector<int> HUFFSIZE;
-      std::vector<uint16_t> HUFFCODE;
-      std::vector<uint16_t> HUFFVAL[16];
-      std::vector<uint16_t> MINCODE;
-      std::vector<uint16_t> MAXCODE;
+      std::vector<int16_t> HUFFCODE;
+      std::vector<int16_t> HUFFVAL[16];
+      std::vector<int16_t> MINCODE;
+      std::vector<int16_t> MAXCODE;
     };
 
     std::map < uint8_t, HuffTableContext > huffDecodeTables;
 
     void GenerateHUFFSIZE(const uint8_t* BITS, std::vector<int>& HUFFSIZE);
-    void GenerateHUFFCODE(const std::vector<int>& HUFFSIZE,std::vector<uint16_t>& HUFFCODE);
-    void GenerateDecoderTables(const uint8_t* BITS, const std::vector<uint16_t>& HUFFCODE,
-                               std::vector<uint16_t>& MINCODE, std::vector<uint16_t>& MAXCODE);
+    void GenerateHUFFCODE(const std::vector<int>& HUFFSIZE,std::vector<int16_t>& HUFFCODE);
+    void GenerateDecoderTables(const uint8_t* BITS, const std::vector<int16_t>& HUFFCODE,
+                               std::vector<int16_t>& MINCODE, std::vector<int16_t>& MAXCODE);
 
-    uint8_t Decode(const std::vector<uint16_t>& MINCODE, const std::vector<uint16_t>& MAXCODE,
-                   const std::vector<uint16_t> HUFFVAL[]);
+    uint8_t Decode(const std::vector<int16_t>& MINCODE, const std::vector<int16_t>& MAXCODE,
+                   const std::vector<int16_t> HUFFVAL[]);
 
     int DecodeNextBlock(cv::Mat& result);
     void DecodeBlock(int Cid, ZZMatrix<int>& block);

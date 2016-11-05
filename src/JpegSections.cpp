@@ -322,12 +322,14 @@ void JpegSections::ReadDHT() {
           table.Th  = ((unsigned char)markerBuffer) & 0x0F;
           table.Tc  = (unsigned char)markerBuffer >> 4;
 
+          ++currentLength;
+
           for (int i = 0; i < 16; ++i) {
             afile.read(&markerBuffer, 1);
             table.L[i] = markerBuffer;
           }
 
-          currentLength+= 17;
+          currentLength+= 16;
 
           for (int j = 0; j < 16; ++j) {
             currentLength+= table.L[j];
