@@ -373,60 +373,60 @@ int JpegSections::GetComponentsNumber() {
 
 int JpegSections::GetComponentH(int Cid) {
   if ((Cid == 0) || (Cid > GetCurrentSof().Nf))
-      throw std::invalid_argument("Error: Invalid coponent id");
+      throw std::invalid_argument("Error: Invalid component id");
 
   if (GetCurrentSof().components[Cid-1].C == Cid) {
     return GetCurrentSof().components[Cid-1].H;
   }
 
-  throw std::invalid_argument("Error: Invalid coponent id");
+  throw std::invalid_argument("Error: Invalid component id");
 }
 
 int JpegSections::GetComponentV(int Cid) {
   if ((Cid == 0) || (Cid > GetCurrentSof().Nf))
-    throw std::invalid_argument("Error: Invalid coponent id");
+    throw std::invalid_argument("Error: Invalid component id");
 
   if (GetCurrentSof().components[Cid-1].C == Cid) {
     return GetCurrentSof().components[Cid-1].V;
   }
 
-  throw std::invalid_argument("Error: Invalid coponent id");
+  throw std::invalid_argument("Error: Invalid component id");
 }
 
 int JpegSections::GetComponentTq(int Cid) {
   if ((Cid == 0) || (Cid > GetCurrentSof().Nf))
-    throw std::invalid_argument("Error: Invalid coponent id");
+    throw std::invalid_argument("Error: Invalid component id");
 
   if (GetCurrentSof().components[Cid-1].C == Cid) {
     return GetCurrentSof().components[Cid-1].Tq;
   }
 
-  throw std::invalid_argument("Error: Invalid coponent id");
+  throw std::invalid_argument("Error: Invalid component id");
 }
 
 int JpegSections::GetComponentTd(int Cid) {
   if ((Cid == 0) || (Cid > GetCurrentSof().Nf))
-    throw std::invalid_argument("Error: Invalid coponent id");
+    throw std::invalid_argument("Error: Invalid component id");
 
   if (SOS.scanComponents[Cid-1].C == Cid) {
     return SOS.scanComponents[Cid-1].Td;
   }
 
-  throw std::invalid_argument("Error: Invalid coponent id");
+  throw std::invalid_argument("Error: Invalid component id");
 }
 
 int JpegSections::GetComponentTa(int Cid) {
   if ((Cid == 0) || (Cid > GetCurrentSof().Nf))
-    throw std::invalid_argument("Error: Invalid coponent id");
+    throw std::invalid_argument("Error: Invalid component id");
 
   if (SOS.scanComponents[Cid-1].C == Cid) {
     return SOS.scanComponents[Cid-1].Ta;
   }
 
-  throw std::invalid_argument("Error: Invalid coponent id");
+  throw std::invalid_argument("Error: Invalid component id");
 }
 
-ZZMatrix<int> & JpegSections::GetQTable(int Cid) {
+ZZMatrix<int>& JpegSections::GetQTable(int Cid) {
   int Tq = GetComponentTq(Cid);
 
   for (std::list<DQTTableElement>::iterator it= DQT.tables.begin();

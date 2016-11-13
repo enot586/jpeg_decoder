@@ -76,7 +76,7 @@ void JpegDecoder::GenerateHUFFSIZE(const uint8_t* BITS, std::vector<int>& HUFFSI
   }
 
   if (k != (totalSize) )
-    throw std::length_error("Error: Unsupported header foramt");
+    throw std::length_error("Error: Unsupported header format");
 }
 
 void JpegDecoder::GenerateHUFFCODE(const std::vector<int>& HUFFSIZE,
@@ -150,6 +150,9 @@ uint8_t JpegDecoder::ReadNextBit() {
 
         if ( (currentByte2 >= sections.RST0[1]) || (currentByte2 <= sections.RST7[1]) ) {
           //RSTn marker
+          for (int i = 0; i < dcDiff.size(); ++i) {
+            dcDiff[i] = 0;
+          }
           cnt = 0;
         } else if ( currentByte == sections.DNL.marker[1] ) {
           cnt = 0;
@@ -160,6 +163,7 @@ uint8_t JpegDecoder::ReadNextBit() {
           //Error
           cnt = 0;
           currentByte = 0;
+          throw std::invalid_argument("Error: Invalid encoder format");
           return 0x00;
         }
       }
@@ -196,6 +200,10 @@ uint8_t JpegDecoder::Decode(const std::vector<int16_t>& MINCODE,
 }
 
 int16_t JpegDecoder::EXTEND(int V, int T) {
+
+  if (T <= 0)
+    throw std::invalid_argument("Error: JpegDecoder::EXTEND(V, T) T<=0");
+
   int16_t Vt = 1 << (T-1);
 
   if (V < Vt) {
@@ -240,18 +248,17 @@ int JpegDecoder::DecodeFromBitLength(int bitLength) {
 
 void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int>& block) {
 
-  block.Reset();
   int iniVal = 0;
   block.Init(iniVal);
+
+  block.Reset();
 
   ZZMatrix<int>& Q = sections.GetQTable(Cid);
 
   int DCAmpl = DCDecode(Cid);
 
   //Decode DPCM for DC coefficients
-  if (DCAmpl) {
-    dcDiff.at(Cid-1)+= DCAmpl;
-  }
+  dcDiff.at(Cid-1)+= DCAmpl;
 
   //Dequantization
   int dequantDc = dcDiff.at(Cid-1) * Q.Get( 0, 0 );
@@ -298,7 +305,7 @@ void JpegDecoder::DecodeBlock(int Cid, ZZMatrix<int>& block) {
       //EOB?
       break;
     }
-  } while ( k <= 63 );
+  } while ( k < 63 );
 }
 
 int JpegDecoder::DecodeNextBlock(cv::Mat& result) {
