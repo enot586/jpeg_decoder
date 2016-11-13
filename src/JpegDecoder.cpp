@@ -13,7 +13,7 @@ JpegDecoder::JpegDecoder(JpegSections& sections_) : sections(sections_) {
   if ( sections.GetComponentsNumber() ) {
     dcDiff.resize( sections.GetComponentsNumber() );
 
-    for (int i = 0; i < dcDiff.size(); ++i) {
+    for (unsigned int i = 0; i < dcDiff.size(); ++i) {
       dcDiff[i] = 0;
     }
   } else {
@@ -55,7 +55,7 @@ void JpegDecoder::GenerateHUFFSIZE(const uint8_t* BITS, std::vector<int>& HUFFSI
 
   HUFFSIZE.resize(totalSize+1);
 
-  for (int i = 0; i < HUFFSIZE.size(); ++i) {
+  for (unsigned int i = 0; i < HUFFSIZE.size(); ++i) {
     HUFFSIZE[i] = 0;
   }
 
@@ -84,13 +84,13 @@ void JpegDecoder::GenerateHUFFCODE(const std::vector<int>& HUFFSIZE,
 
   HUFFCODE.resize( HUFFSIZE.size() );
 
-  for (int i = 0; i < HUFFCODE.size(); ++i) {
+  for (unsigned int i = 0; i < HUFFCODE.size(); ++i) {
     HUFFCODE[i] = 0;
   }
 
   int16_t code = 0;
   int si = HUFFSIZE[0];
-  int k = 0;
+  unsigned int k = 0;
 
   while ( k < HUFFSIZE.size() ) {
     HUFFCODE[k] = code;
@@ -150,7 +150,7 @@ uint8_t JpegDecoder::ReadNextBit() {
 
         if ( (currentByte2 >= sections.RST0[1]) || (currentByte2 <= sections.RST7[1]) ) {
           //RSTn marker
-          for (int i = 0; i < dcDiff.size(); ++i) {
+          for (unsigned int i = 0; i < dcDiff.size(); ++i) {
             dcDiff[i] = 0;
           }
           cnt = 0;
@@ -164,7 +164,6 @@ uint8_t JpegDecoder::ReadNextBit() {
           cnt = 0;
           currentByte = 0;
           throw std::invalid_argument("Error: Invalid encoder format");
-          return 0x00;
         }
       }
     } while (!cnt);
@@ -176,13 +175,14 @@ uint8_t JpegDecoder::ReadNextBit() {
     currentByte = currentByte << 1;
     return result;
   }
+
+  throw std::invalid_argument("Error: JpegDecoder::ReadNextBit()");
 }
 
 uint8_t JpegDecoder::Decode(const std::vector<int16_t>& MINCODE,
                             const std::vector<int16_t>& MAXCODE,
                             const std::vector<int16_t> HUFFVAL[]) {
   int i = 1;
-  int j = 0;
   uint16_t code = ReadNextBit();
 
   while (i <= 16) {
@@ -343,7 +343,6 @@ int JpegDecoder::DecodeNextBlock(cv::Mat& result) {
   decodingResult.convertTo(result, CV_8U);
 
   return currentCid;
-
 }
 
 void JpegDecoder::MergeMat(ZZMatrix<cv::Mat>& zz, cv::Mat& result) {
@@ -372,8 +371,9 @@ void JpegDecoder::run() {
   cv::Mat resultImage;
   cv::Mat resultRow;
   cv::Mat resultRowRow;
-  cv::Mat block;
 
+
+  //Размер изображения в блоках 8х8
   int height = sections.GetImageSizeY() / 8;
   int width = sections.GetImageSizeX() / 8;
 
@@ -383,31 +383,42 @@ void JpegDecoder::run() {
   if (sections.GetImageSizeX() % 8)
     ++width;
 
-  int sizeComponent[3];
-  ZZMatrix<cv::Mat>* components[3];
+  int Nf = sections.GetComponentsNumber();
+  int sizeComponent[ Nf ];
+  ZZMatrix<cv::Mat>* components[ Nf ];
 
-  for (int i = 0; i < sections.GetComponentsNumber(); ++i) {
+  for (int i = 0; i < Nf; ++i) {
     int comH = sections.GetComponentH(i+1);
     int comV = sections.GetComponentV(i+1);
     sizeComponent[i] = comH*comV;
     components[i] = new ZZMatrix<cv::Mat>(comV, comH);
   }
 
-  for (int w = 0; w < height; ++w) {
-    for (int g = 0; g < width/2; ++g) {
-      for (int i = 0; i < sections.GetComponentsNumber(); ++i) {
+  //Получаем количество итераций с учетом размещения компонентов в MCU
+  int iterationsV = height/sections.GetComponentV(1);
+  int iterationsH = width/sections.GetComponentH(1);
+
+  for (int indexV = 0; indexV < iterationsV; ++indexV) {
+    for (int indexH = 0; indexH < iterationsH; ++indexH) {
+
+      //Decode MCU
+      for (int i = 0; i < Nf; ++i) {
+        components[i]->Reset();
         for (int j = 0; j < sizeComponent[i]; ++j) {
+          cv::Mat block;
           DecodeNextBlock(block);
           //std::cout << "C[" << i << "]=" << endl << block << endl << endl;
           components[i]->Push(block);
+          //components[i]->PrintWithoutCast();
+          //std::cout << "-------------------------------" << endl;
         }
-
-        components[1]->Reset();
-        components[2]->Reset();
-
-        MergeMat(*components[0], resultRow);
       }
-      if (resultImage.empty()) {
+
+      MergeMat( *(components[0]), resultRow );
+
+      //std::cout << "merged=" << endl << resultRow << endl << endl;
+
+      if ( resultImage.empty() ) {
         resultRow.copyTo(resultImage);
       } else {
         cv::hconcat(resultImage, resultRow, resultImage);
@@ -415,7 +426,8 @@ void JpegDecoder::run() {
 
       resultRow.release();
     }
-    if (resultRowRow.empty()) {
+
+    if ( resultRowRow.empty() ) {
       resultImage.copyTo(resultRowRow);
     } else {
       cv::vconcat(resultRowRow, resultImage, resultRowRow);

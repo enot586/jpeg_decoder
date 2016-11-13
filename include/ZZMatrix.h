@@ -35,6 +35,7 @@ class ZZMatrix
     int Rows()    { return sizeY; };
 
     void Print();
+    void PrintWithoutCast();
 
     void Reset() {
       x = 0;
@@ -69,7 +70,7 @@ class ZZMatrix
 };
 
 template<typename T>
-ZZMatrix<T>::ZZMatrix(int M, int N): sizeY(M),sizeX(N) {
+ZZMatrix<T>::ZZMatrix(int M, int N): sizeX(N),sizeY(M) {
 
   m.resize(sizeY);
   for (int i = 0; i < sizeY; ++i) {
@@ -172,6 +173,18 @@ void ZZMatrix<T>::Print() {
   for (int i = 0; i < sizeY; ++i) {
     for (int j = 0; j < sizeX; ++j) {
       std::cout << std::dec << static_cast<int16_t>(m[i][j]) << "\t";
+    }
+    std::cout << std::endl;
+  }
+
+}
+
+template<typename T>
+void ZZMatrix<T>::PrintWithoutCast() {
+
+  for (int i = 0; i < sizeY; ++i) {
+    for (int j = 0; j < sizeX; ++j) {
+      std::cout << m[i][j] << "\t";
     }
     std::cout << std::endl;
   }

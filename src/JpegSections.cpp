@@ -81,7 +81,7 @@ int JpegSections::SearchSOF() {
       if ( (((unsigned char)markerBuffer) >= SOF[0].marker[1]) &&
            (((unsigned char)markerBuffer) <= SOF[0].marker[1]+3) ) {
 
-        int sofNumber = (unsigned char)markerBuffer - SOF[0].marker[1];
+        unsigned int sofNumber = (unsigned char)markerBuffer - SOF[0].marker[1];
 
         if ( sofNumber < SOF.size() ) {
           return sofNumber;
@@ -93,7 +93,7 @@ int JpegSections::SearchSOF() {
   return (-1);
 }
 
-bool JpegSections::ReadSOF(int sofNumber) {
+bool JpegSections::ReadSOF(size_t sofNumber) {
 
   if ( !afile.good() )
     throw std::invalid_argument("Error: Input file error !");
@@ -441,7 +441,7 @@ ZZMatrix<int>& JpegSections::GetQTable(int Cid) {
 
 int JpegSections::GetComponentHmax() {
   int Hmax = 0;
-  for (int i = 0; i < GetCurrentSof().components.size(); ++i) {
+  for (unsigned int i = 0; i < GetCurrentSof().components.size(); ++i) {
     int current = GetCurrentSof().components[i].H;
     if ( current > Hmax) Hmax = current;
   }
@@ -451,7 +451,7 @@ int JpegSections::GetComponentHmax() {
 
 int JpegSections::GetComponentVmax() {
   int Vmax = 0;
-  for (int i = 0; i < GetCurrentSof().components.size(); ++i) {
+  for (unsigned int i = 0; i < GetCurrentSof().components.size(); ++i) {
     int current = GetCurrentSof().components[i].V;
     if ( current > Vmax) Vmax = current;
   }

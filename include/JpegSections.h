@@ -37,7 +37,7 @@ class JpegSections
     void  AssignFile(std::string& fileName);
     bool  SearchSOI();
     int   SearchSOF();
-    bool  ReadSOF(int sofNumber);
+    bool  ReadSOF(size_t sofNumber);
     void  ReadFrameComponents();
     void  ReadSOS();
     void  ReadDQT();
